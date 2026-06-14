@@ -78,14 +78,14 @@ export const PROJECT_CONNECTIONS: Record<string, ProjectConnection[]> = {
   "proj-keps-trading": [],
   "proj-points-miles": [],
   "proj-jeff-os": [
-    c({ id: "gh", kind: "github", name: "GitHub", url: "https://github.com", estimatedMonthlyUsd: 0 }),
+    c({ id: "gh", kind: "github", name: "GitHub", url: "https://github.com/jpro99/JeffOS", estimatedMonthlyUsd: 0 }),
     c({
       id: "vercel",
       kind: "vercel",
       name: "Vercel",
-      url: "https://vercel.com/dashboard",
+      url: "https://vercel.com/new",
       dashboardUrl: "https://vercel.com/dashboard",
-      description: "Optional — set Root Directory to jeff-mission-control",
+      description: "Import github.com/jpro99/JeffOS — Root Directory = .",
       estimatedMonthlyUsd: 0,
     }),
     c({

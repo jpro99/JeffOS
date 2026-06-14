@@ -189,6 +189,7 @@ export const seedState: MissionControlState = {
       status: "active",
       priority: "P0",
       path: "C:\\Projects\\Project Command\\jeff-mission-control",
+      github: "https://github.com/jpro99/JeffOS",
       description: "Jeff Mission Control — Easy Mode, verify build, gap/fix prompts, Command Center.",
       goals: ["Dogfood self-build", "Honest verify + gaps", "Easy Mode polish"],
       risks: ["Self-verify while dev running", "Stale localStorage ops"],

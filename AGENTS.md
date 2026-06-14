@@ -32,5 +32,5 @@ Run before telling Jeff to ship.
 
 ## Deploy (optional)
 
-- **GitHub CI:** `.github/workflows/jeff-os-ci.yml` at Project Command repo root (runs in `jeff-mission-control/`).
-- **Vercel:** import repo, set **Root Directory** = `jeff-mission-control`, framework Next.js.
+- **GitHub CI:** `.github/workflows/ci.yml` in this repo (JeffOS on GitHub).
+- **Vercel:** import `github.com/jpro99/JeffOS`, **Root Directory** = `.`, framework Next.js.

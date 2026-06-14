@@ -180,6 +180,7 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
         project={project}
         verifyReport={verifyReport}
         liveGapCount={brief.liveGapCount}
+        scan={scan}
         onVerify={() => void runScan(true)}
         onOpenGaps={scrollToGaps}
       />

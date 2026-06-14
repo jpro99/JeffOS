@@ -18,30 +18,36 @@ Open http://localhost:3000
 Jeff OS can manage itself:
 
 1. Easy Mode → **Projects → Jeff OS**
-2. **Self-build mode** banner — edit code, verify, gaps, ship
+2. **Self-build mode** banner — edit, verify, gaps, ship
 3. **Rescan + verify build** — runs real `npm run build` on this repo
 
-Code: `jeff-mission-control/` · Docs: `AI-COMMAND-CENTER/`
+Code: this repo · Docs: `../AI-COMMAND-CENTER/` (sibling folder on Jeff's machine)
 
-## Deploy (optional)
+## GitHub
 
-### GitHub CI
-
-Workflow at repo root: `.github/workflows/jeff-os-ci.yml` (Project Command git repo).
-
-Runs `npm ci`, `npm run build`, `npm run lint` in `jeff-mission-control/`.
-
-### Vercel
-
-1. Connect GitHub repo (Project Command)
-2. **Root Directory:** `jeff-mission-control`
-3. Framework: Next.js (auto)
-4. `vercel.json` included
-
-Or local link:
+**Repo:** https://github.com/jpro99/JeffOS
 
 ```powershell
-cd "C:\Projects\Project Command\jeff-mission-control"
+git remote -v   # should point at JeffOS
+git push origin main
+```
+
+## CI
+
+Workflow: `.github/workflows/ci.yml`
+
+On every push to `main`: `npm ci` → `npm run build` → `npm run lint`
+
+## Deploy (optional Vercel)
+
+1. Vercel → **Import** → `jpro99/JeffOS`
+2. **Root Directory:** `.` (repo root)
+3. Framework: Next.js (auto from `vercel.json`)
+4. Deploy — future pushes to GitHub auto-build on Vercel
+
+Local link:
+
+```powershell
 npx vercel link
 ```
 
@@ -49,7 +55,7 @@ npx vercel link
 
 | Area | What |
 |------|------|
-| **Easy Mode** | Snapshot, verify build, gap/fix prompts, ship panel |
+| **Easy Mode** | Builder Hub, verify build, gap/fix prompts, ship panel |
 | **Project workspace** | Operating room per project — health, next action, errors |
 | **Command Center tab** | Edit God Bot markdown in `AI-COMMAND-CENTER` |
 | **Voice control** | Push/tap to talk — routes commands |

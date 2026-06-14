@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Project } from "@/lib/types";
 import type { GitStatusSnapshot } from "@/lib/project-scan/git-status";
 import { buildShipPrompt, shipReadinessLabel, type ShipAction } from "@/lib/mission/deploy";
+import { JEFF_OS_GITHUB, isJeffOsProject } from "@/components/easy/EasySelfBuildBanner";
 import { useMissionControl } from "@/lib/store/context";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { cn, copyToClipboard } from "@/lib/utils";
@@ -68,7 +69,7 @@ export function EasyShipPanel({ project }: { project: Project }) {
     ? shipReadinessLabel(git, buildVerified)
     : { label: "Loading…", tone: "wait" as const, hint: "" };
 
-  const ghUrl = project.connections?.find((c) => c.kind === "github")?.url;
+  const ghUrl = project.connections?.find((c) => c.kind === "github")?.url ?? (isJeffOsProject(project) ? JEFF_OS_GITHUB : undefined);
   const vercelUrl =
     project.connections?.find((c) => c.kind === "vercel")?.dashboardUrl ??
     project.connections?.find((c) => c.kind === "vercel")?.url;
@@ -185,6 +186,19 @@ export function EasyShipPanel({ project }: { project: Project }) {
           <li>· Failed Vercel build costs credits — verify locally first</li>
         </ul>
       </details>
+
+      {isJeffOsProject(project) && !vercelLinked && (
+        <div className="rounded-xl border border-indigo-500/15 bg-indigo-500/[0.03] px-4 py-3 text-xs text-zinc-400">
+          <p className="font-medium text-indigo-200">Jeff OS → Vercel (one-time)</p>
+          <p className="mt-1">
+            Import{" "}
+            <a href={JEFF_OS_GITHUB} target="_blank" rel="noreferrer" className="text-teal-500 hover:underline">
+              github.com/jpro99/JeffOS
+            </a>{" "}
+            · Root Directory <strong className="text-zinc-300">.</strong> · Deploy
+          </p>
+        </div>
+      )}
 
       {msg && <p className="text-center text-xs text-teal-500">{msg}</p>}
     </section>
