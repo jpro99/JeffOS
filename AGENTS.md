@@ -30,6 +30,12 @@ Run before telling Jeff to ship.
 - Minimal diff. No drive-by refactors.
 - Caveman voice in user-facing copy when Jeff mode is caveman.
 
+## Online / phone
+
+- Easy Mode → **Go live** panel on Start page
+- Works on phone after Vercel deploy — bookmark `/easy` or install PWA (`manifest.webmanifest`)
+- Data is **browser localStorage** per device — no cloud sync yet
+
 ## Deploy (optional)
 
 - **GitHub CI:** `.github/workflows/ci.yml` in this repo (JeffOS on GitHub).

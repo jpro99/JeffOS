@@ -5,6 +5,7 @@ import { EASY_START_STEPS } from "@/lib/ui/experience";
 import { ExperiencePicker } from "@/components/easy/ExperiencePicker";
 import { EasyImportHub } from "@/components/easy/EasyImportHub";
 import { EasyGodModeQuick } from "@/components/easy/EasyGodModeQuick";
+import { EasyOnlineAccess } from "@/components/easy/EasyOnlineAccess";
 import { useMissionControl } from "@/lib/store/context";
 
 export function EasyHome() {
@@ -38,6 +39,8 @@ export function EasyHome() {
           </a>
         </div>
       </section>
+
+      <EasyOnlineAccess />
 
       <div id="import-projects">
         <EasyImportHub />

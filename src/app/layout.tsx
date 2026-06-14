@@ -17,12 +17,20 @@ export const metadata: Metadata = {
   title: "Jeff OS",
   description: "Programming operating shell — projects, bots, routing, prompts.",
   applicationName: "Jeff OS",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Jeff OS",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
   themeColor: "#0b0c0f",
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

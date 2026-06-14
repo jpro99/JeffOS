@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMissionControl } from "@/lib/store/context";
 import { ExperiencePicker } from "@/components/easy/ExperiencePicker";
+import { EasyOnlineAccess } from "@/components/easy/EasyOnlineAccess";
+import { normalizePublicUrl } from "@/lib/deploy/online-access";
 
 export default function EasySettingsPage() {
   const { state, updateSettings } = useMissionControl();
@@ -15,6 +17,31 @@ export default function EasySettingsPage() {
       </div>
 
       <ExperiencePicker />
+
+      <EasyOnlineAccess />
+
+      <section className="space-y-3 rounded-2xl border border-white/[0.08] p-5">
+        <h2 className="text-sm font-semibold text-zinc-300">Production URL</h2>
+        <p className="text-sm text-zinc-500">After Vercel deploy — paste URL so Jeff OS links work from phone.</p>
+        <form
+          className="flex flex-wrap gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            updateSettings({ productionUrl: normalizePublicUrl(String(fd.get("url") ?? "")) });
+          }}
+        >
+          <input
+            name="url"
+            defaultValue={state.settings.productionUrl ?? ""}
+            placeholder="jeff-os.vercel.app"
+            className="min-w-[200px] flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-zinc-300"
+          />
+          <button type="submit" className="rounded-full bg-teal-500 px-4 py-2 text-xs font-semibold text-black">
+            Save
+          </button>
+        </form>
+      </section>
 
       <section className="space-y-3 rounded-2xl border border-white/[0.08] p-5">
         <h2 className="text-sm font-semibold text-zinc-300">Compare modes</h2>

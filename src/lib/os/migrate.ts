@@ -106,6 +106,7 @@ export function migrateState(raw: Partial<MissionControlState>): MissionControlS
         base.settings?.guidedJourneyDismissed ?? seedState.settings.guidedJourneyDismissed,
       guidedJourneyLastBuildAt:
         base.settings?.guidedJourneyLastBuildAt ?? seedState.settings.guidedJourneyLastBuildAt,
+      productionUrl: base.settings?.productionUrl ?? seedState.settings.productionUrl,
     },
     projects,
     bots,

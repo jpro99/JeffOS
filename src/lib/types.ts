@@ -565,6 +565,8 @@ export interface AppSettings {
   guidedJourneyDismissed: boolean;
   /** ISO time of last Builder Hub "Build it" — unlocks Cursor step */
   guidedJourneyLastBuildAt: string | null;
+  /** Saved Vercel / custom domain — open Jeff OS from phone */
+  productionUrl: string | null;
 }
 
 export type VoiceMode = "push-to-talk" | "tap-to-talk";

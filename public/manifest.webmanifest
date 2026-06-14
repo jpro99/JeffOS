@@ -1,0 +1,19 @@
+{
+  "name": "Jeff OS — Mission Control",
+  "short_name": "Jeff OS",
+  "description": "Jeff Mission Control — projects, verify, ship, from anywhere.",
+  "start_url": "/easy",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0b0e",
+  "theme_color": "#0b0c0f",
+  "icons": [
+    {
+      "src": "/globe.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

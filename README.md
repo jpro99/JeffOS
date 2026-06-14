@@ -43,7 +43,14 @@ On every push to `main`: `npm ci` → `npm run build` → `npm run lint`
 1. Vercel → **Import** → `jpro99/JeffOS`
 2. **Root Directory:** `.` (repo root)
 3. Framework: Next.js (auto from `vercel.json`)
-4. Deploy — future pushes to GitHub auto-build on Vercel
+4. Deploy — open **`https://your-app.vercel.app/easy`** on phone or any browser
+5. Optional: **Add to Home Screen** (iPhone Share menu / Android Install app)
+
+Optional env for custom domain:
+
+```
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+```
 
 Local link:
 
