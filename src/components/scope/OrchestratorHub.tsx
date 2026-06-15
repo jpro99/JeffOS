@@ -34,18 +34,34 @@ const PLATFORMS = ["web", "mobile", "desktop", "api"];
 
 export function OrchestratorHub({ project }: { project: Project }) {
   const { state, updateProject, getBot, addActivity } = useMissionControl();
-  const orch = project.orchestration!;
-  const stats = getOrchestrationStats(project);
+  const live = state.projects.find((p) => p.id === project.id) ?? project;
+  const orch = live.orchestration!;
+  const stats = getOrchestrationStats(live);
   const [selectedFeature, setSelectedFeature] = useState<ProjectFeature | null>(null);
   const [costPattern, setCostPattern] = useState<CostPattern>(orch.plan?.costPattern ?? "mixed");
   const [newFeat, setNewFeat] = useState({ name: "", description: "" });
+  const [apiScanMsg, setApiScanMsg] = useState<string | null>(null);
 
   const save = (next: Project) => {
     updateProject({ ...next, lastUpdated: new Date().toISOString() });
   };
 
   const patchOrch = (patch: Partial<typeof orch>) => {
-    save({ ...project, orchestration: { ...orch, ...patch } });
+    const current = state.projects.find((p) => p.id === project.id) ?? live;
+    const o = current.orchestration!;
+    save({ ...current, orchestration: { ...o, ...patch } });
+  };
+
+  const runApiScan = () => {
+    const current = state.projects.find((p) => p.id === project.id) ?? live;
+    const suggestions = suggestIntegrations(current);
+    patchOrch({ integrationSuggestions: suggestions });
+    setApiScanMsg(
+      suggestions.length === 0
+        ? "No APIs matched — add keywords in pitch/goals (auth, payments, AI, maps) or pick platforms in scope."
+        : `Found ${suggestions.length} recommended API${suggestions.length === 1 ? "" : "s"} — scroll down to review.`,
+    );
+    addActivity(`API scan: ${suggestions.length} suggestions for ${current.name}`, "project", current.id);
   };
 
   const updateScope = (field: string, value: string | string[]) => {
@@ -449,13 +465,18 @@ export function OrchestratorHub({ project }: { project: Project }) {
         </p>
         <button
           type="button"
-          onClick={() => patchOrch({ integrationSuggestions: suggestIntegrations(project) })}
-          className="rounded-full border border-white/10 px-4 py-2 text-sm text-zinc-400"
+          onClick={runApiScan}
+          className="rounded-full bg-teal-500/15 px-5 py-2.5 text-sm font-medium text-teal-200 ring-1 ring-teal-500/25 hover:bg-teal-500/25"
         >
           Scan for APIs
         </button>
+        {apiScanMsg && (
+          <p className="text-sm text-teal-400">{apiScanMsg}</p>
+        )}
         {orch.integrationSuggestions.length === 0 ? (
-          <p className="text-sm text-zinc-600">Run scan after scope is filled in.</p>
+          <p className="text-sm text-zinc-600">
+            Click Scan — reads your pitch, goals, platforms, and features. Results appear below.
+          </p>
         ) : (
           <ul className="space-y-3">
             {orch.integrationSuggestions.map((int) => (

@@ -10,6 +10,9 @@ import type { AppSettings, MissionControlState, Project } from "@/lib/types";
  *   [Paste Cursor] → [Rescan+verify] → [Ship] → [Done]
  *        ↓                  ↓            ↓         ↑
  *   prompt panel      project snapshot  ship    [Add on →] loops back
+ *
+ *   [Portfolio pulse] — all projects status on /easy Start
+ *   [One-day sprint] — God route adds sprint block to Cursor prompt
  */
 
 export type GuidedStepId =

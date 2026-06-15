@@ -19,6 +19,7 @@ const easyNav = [
 export function EasyShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { state } = useMissionControl();
+  const isNewWizard = pathname.startsWith("/easy/new");
 
   return (
     <div className="min-h-screen bg-[#0a0b0e] bg-[radial-gradient(ellipse_at_top,_rgba(20,184,166,0.08)_0%,_transparent_50%)] text-zinc-100 pb-[env(safe-area-inset-bottom)]">
@@ -74,11 +75,14 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
 
       <EasyOnlineAccess compact />
 
-      <div id="builder-hub">
-        <EasyBuilderHub />
-      </div>
-
-      <EasyGuidedJourney />
+      {!isNewWizard && (
+        <>
+          <div id="builder-hub">
+            <EasyBuilderHub />
+          </div>
+          <EasyGuidedJourney />
+        </>
+      )}
 
       <main className="mx-auto max-w-3xl px-4 py-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">{children}</main>
 

@@ -6,6 +6,7 @@ import { ExperiencePicker } from "@/components/easy/ExperiencePicker";
 import { EasyImportHub } from "@/components/easy/EasyImportHub";
 import { EasyGodModeQuick } from "@/components/easy/EasyGodModeQuick";
 import { EasyOnlineAccess } from "@/components/easy/EasyOnlineAccess";
+import { EasyPortfolioPulse } from "@/components/easy/EasyPortfolioPulse";
 import { useMissionControl } from "@/lib/store/context";
 
 export function EasyHome() {
@@ -26,8 +27,14 @@ export function EasyHome() {
 
         <div className="flex flex-wrap gap-3 pt-2">
           <Link
-            href="/easy/projects"
+            href="/easy/new"
             className="rounded-full bg-teal-500 px-6 py-3 text-sm font-semibold text-black hover:bg-teal-400"
+          >
+            New application
+          </Link>
+          <Link
+            href="/easy/projects"
+            className="rounded-full border border-white/15 bg-white/[0.05] px-6 py-3 text-sm font-medium text-zinc-200 hover:bg-white/[0.08]"
           >
             Open projects ({projectCount})
           </Link>
@@ -39,6 +46,8 @@ export function EasyHome() {
           </a>
         </div>
       </section>
+
+      <EasyPortfolioPulse />
 
       <EasyOnlineAccess />
 

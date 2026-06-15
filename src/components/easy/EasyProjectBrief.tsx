@@ -12,6 +12,7 @@ import { EasyConnectionsInventory } from "@/components/easy/EasyConnectionsInven
 import { EasyErrorFixPanel } from "@/components/easy/EasyErrorFixPanel";
 import { EasyGapsPanel, OperationalStatusButton } from "@/components/easy/EasyGapsPanel";
 import { EasySelfBuildBanner } from "@/components/easy/EasySelfBuildBanner";
+import { EasyCostBreakdown } from "@/components/easy/EasyCostBreakdown";
 
 const statusColors: Record<string, string> = {
   operational: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/25",
@@ -198,14 +199,17 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
             </p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => void runScan(true)}
-          className="shrink-0 rounded-lg border border-white/[0.08] px-3 py-1 text-xs text-zinc-500 hover:text-zinc-300"
-          title="Scan folder + run npm build to check if errors are fixed"
-        >
-          Rescan + verify build
-        </button>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <EasyCostBreakdown project={project} compact />
+          <button
+            type="button"
+            onClick={() => void runScan(true)}
+            className="rounded-lg border border-white/[0.08] px-3 py-1 text-xs text-zinc-500 hover:text-zinc-300"
+            title="Scan folder + run npm build to check if errors are fixed"
+          >
+            Rescan + verify build
+          </button>
+        </div>
       </div>
 
       {verifyReport && (

@@ -11,8 +11,9 @@ export function suggestBuilderEnhancements(
   const t = intent.toLowerCase();
 
   if (route === "god" || route === "mission") {
-    ideas.push("Add-on button so Jeff keeps building as new ideas hit");
-    ideas.push("AI tells Jeff: you could also add this — make it better than asked");
+    ideas.push("Honest cost breakdown — tap est. $/mo for line-by-line catalog truth");
+    ideas.push("Portfolio pulse — see all projects verify and backlog at once");
+    ideas.push("One-day sprint — bots ship today not weeks");
     if (!t.includes("walkthrough") && !t.includes("guided")) {
       ideas.push("Guided walkthrough from Builder Hub to ship");
     }

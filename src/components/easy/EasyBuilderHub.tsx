@@ -18,6 +18,16 @@ const QUICK_CHIPS: { label: string; intent: string; route: BuilderRoute }[] = [
     intent: "God Mode — simplest way to program, tell me what you need and build it, next level mainstream",
     route: "god",
   },
+  {
+    label: "One-day sprint",
+    intent: "One-day sprint — bots build everything today not weeks, track all projects, new project ease, push and ship",
+    route: "god",
+  },
+  {
+    label: "New project",
+    intent: "New greenfield project — scaffold repo, verify build, ship ready in one day",
+    route: "mission",
+  },
 ];
 
 const ROUTE_COLORS: Record<BuilderRoute, string> = {
@@ -43,6 +53,9 @@ export function EasyBuilderHub() {
   const [stackBaseIntent, setStackBaseIntent] = useState("");
   const [addOnHistory, setAddOnHistory] = useState<string[]>([]);
   const adapterRef = useRef(createSpeechRecognitionAdapter());
+  const listeningRef = useRef(false);
+  const talkBaseRef = useRef("");
+  const talkFinalsRef = useRef("");
   const promptPanelRef = useRef<HTMLDivElement>(null);
   const promptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -68,26 +81,47 @@ export function EasyBuilderHub() {
       setMsg("Mic blocked — type below");
       return;
     }
+
+    talkBaseRef.current = intent.trim();
+    talkFinalsRef.current = "";
+    listeningRef.current = true;
     setListening(true);
-    adapter.start({
-      onResult: (partial, isFinal) => {
-        if (isFinal && partial) {
-          setIntent((prev) => (prev ? `${prev} ${partial}` : partial));
+    setMsg("Keep talking — tap I'm done when finished");
+
+    adapter.start(
+      {
+        onResult: (partial, isFinal) => {
+          if (!listeningRef.current) return;
+          if (isFinal && partial) {
+            talkFinalsRef.current = talkFinalsRef.current
+              ? `${talkFinalsRef.current} ${partial}`.trim()
+              : partial;
+          }
+          const parts = [talkBaseRef.current, talkFinalsRef.current];
+          if (!isFinal && partial) parts.push(partial);
+          const combined = parts.filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+          if (combined) setIntent(combined);
+        },
+        onError: (e) => {
+          if (!listeningRef.current) return;
           setListening(false);
-          adapter.stop();
-        }
+          listeningRef.current = false;
+          setMsg(e);
+        },
+        onEnd: () => {
+          if (listeningRef.current) return;
+          setListening(false);
+        },
       },
-      onError: (e) => {
-        setListening(false);
-        setMsg(e);
-      },
-      onEnd: () => setListening(false),
-    });
-  }, []);
+      { continuous: true },
+    );
+  }, [intent]);
 
   const stopTalk = useCallback(() => {
+    listeningRef.current = false;
     adapterRef.current.stop();
     setListening(false);
+    setMsg(null);
   }, []);
 
   const applyBuildResult = useCallback(
@@ -185,7 +219,7 @@ export function EasyBuilderHub() {
             Tell me what you need. I&apos;ll build it.
           </h2>
           <p className="mt-1 text-sm text-zinc-500">
-            Type or talk — fix, build, ship, gaps, God Mode. Build it → copy → Cursor. New idea? Add on →.
+            Type or talk — fix, build, ship, gaps, God Mode. Track all projects. Build it → copy → Cursor. New idea? Add on →.
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -260,18 +294,28 @@ export function EasyBuilderHub() {
                 Add on →
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => (listening ? stopTalk() : void startTalk())}
-              className={cn(
-                "rounded-full px-4 py-3 text-sm ring-1",
-                listening
-                  ? "animate-pulse bg-rose-500/20 text-rose-200 ring-rose-500/40"
-                  : "border border-white/10 text-zinc-400 hover:text-zinc-200",
-              )}
-            >
-              {listening ? "● Listening" : "🎙 Talk"}
-            </button>
+            {!listening ? (
+              <button
+                type="button"
+                onClick={() => void startTalk()}
+                className="rounded-full border border-white/10 px-4 py-3 text-sm text-zinc-400 hover:text-zinc-200"
+              >
+                🎙 Talk
+              </button>
+            ) : (
+              <>
+                <span className="flex items-center rounded-full bg-rose-500/15 px-4 py-3 text-sm text-rose-200 ring-1 ring-rose-500/40 animate-pulse">
+                  ● Listening…
+                </span>
+                <button
+                  type="button"
+                  onClick={stopTalk}
+                  className="rounded-full bg-teal-500 px-5 py-3 text-sm font-bold text-black shadow-lg shadow-teal-500/20 hover:bg-teal-400"
+                >
+                  I&apos;m done
+                </button>
+              </>
+            )}
             {prompt && (
               <button
                 type="button"

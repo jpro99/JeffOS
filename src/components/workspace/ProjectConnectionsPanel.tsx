@@ -6,6 +6,7 @@ import { useMissionControl } from "@/lib/store/context";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { CONNECTION_ICONS } from "@/lib/connections/catalog";
 import { costAlertClasses, getCostAlertLevel, sumProjectCost } from "@/lib/connections/helpers";
+import { EasyCostBreakdown } from "@/components/easy/EasyCostBreakdown";
 import { cn } from "@/lib/utils";
 
 export function ProjectConnectionsPanel({ project }: { project: Project }) {
@@ -73,10 +74,8 @@ export function ProjectConnectionsPanel({ project }: { project: Project }) {
           <CardTitle>Connections</CardTitle>
           <p className="mt-1 text-sm text-zinc-500">GitHub, deploy, APIs — one tap to the right dashboard.</p>
         </div>
-        <div className={cn("rounded-xl border px-4 py-2 text-right", costAlertClasses(alert))}>
-          <p className="text-[10px] uppercase tracking-wider opacity-80">Est. monthly</p>
-          <p className="text-xl font-semibold tabular-nums">${monthly.toFixed(0)}/mo</p>
-          <p className="text-[10px] opacity-70">limit ${threshold}/mo</p>
+        <div className="max-w-sm shrink-0">
+          <EasyCostBreakdown project={project} compact defaultOpen={false} />
         </div>
       </div>
 

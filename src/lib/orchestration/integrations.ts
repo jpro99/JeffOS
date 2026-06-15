@@ -1,15 +1,40 @@
 import type { IntegrationSuggestion, Project } from "@/lib/types";
 import { uid } from "@/lib/utils";
 
+function buildScanText(project: Project): string {
+  const orch = project.orchestration;
+  return [
+    project.name,
+    project.description,
+    ...project.goals,
+    project.stack.join(" "),
+    orch?.scope.pitch,
+    orch?.scope.techPreferences,
+    orch?.scope.targetUsers,
+    orch?.scope.platforms?.join(" "),
+    ...(orch?.features.map((f) => `${f.name} ${f.description}`) ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
 export function suggestIntegrations(project: Project): IntegrationSuggestion[] {
-  const text = `${project.name} ${project.description} ${project.stack.join(" ")} ${project.orchestration?.scope.pitch ?? ""}`.toLowerCase();
+  const text = buildScanText(project);
+  const platforms = project.orchestration?.scope.platforms ?? [];
+  const hasWeb = platforms.includes("web") || platforms.includes("api") || /next|vercel|web/i.test(text);
+  const hasMobile = platforms.includes("mobile") || /mobile|ios|android|capacitor|expo/i.test(text);
+  const hasDesktop = platforms.includes("desktop") || /desktop|tauri|electron/i.test(text);
   const out: IntegrationSuggestion[] = [];
 
+  const hasName = (name: string) => out.some((s) => s.name === name);
+
   const add = (s: Omit<IntegrationSuggestion, "id">) => {
+    if (hasName(s.name)) return;
     out.push({ ...s, id: uid("int") });
   };
 
-  if (/travel|flight|kepi|trip|duffel/i.test(text)) {
+  if (/travel|flight|kepi|trip|duffel|hotel/i.test(text)) {
     add({
       name: "Flights API",
       purpose: "Search and book flights",
@@ -25,7 +50,7 @@ export function suggestIntegrations(project: Project): IntegrationSuggestion[] {
     });
   }
 
-  if (/stripe|payment|saas|subscription|dunning/i.test(text)) {
+  if (/stripe|payment|saas|subscription|dunning|checkout|billing/i.test(text)) {
     add({
       name: "Payments",
       purpose: "Subscriptions and billing",
@@ -40,7 +65,7 @@ export function suggestIntegrations(project: Project): IntegrationSuggestion[] {
     });
   }
 
-  if (/supabase|postgres|database|auth/i.test(text)) {
+  if (/supabase|postgres|database|\bdb\b|storage|persist/i.test(text) || hasWeb) {
     add({
       name: "Database + Auth",
       purpose: "Data storage and user auth",
@@ -55,7 +80,7 @@ export function suggestIntegrations(project: Project): IntegrationSuggestion[] {
     });
   }
 
-  if (/email|dunning|resend|sendgrid/i.test(text)) {
+  if (/email|dunning|resend|sendgrid|notify|notification/i.test(text)) {
     add({
       name: "Transactional email",
       purpose: "User emails and dunning",
@@ -70,7 +95,7 @@ export function suggestIntegrations(project: Project): IntegrationSuggestion[] {
     });
   }
 
-  if (/ai|openai|gemini|anthropic|extract|legal/i.test(text)) {
+  if (/ai|openai|gemini|anthropic|extract|legal|llm|chatbot|assistant/i.test(text)) {
     add({
       name: "AI / LLM",
       purpose: "Extraction, generation, assistants",
@@ -86,7 +111,7 @@ export function suggestIntegrations(project: Project): IntegrationSuggestion[] {
     });
   }
 
-  if (/map|hotel|kepi search/i.test(text)) {
+  if (/map|geocode|gps|location|hotel|kepi search/i.test(text)) {
     add({
       name: "Maps",
       purpose: "Map tiles and geospatial",
@@ -101,7 +126,7 @@ export function suggestIntegrations(project: Project): IntegrationSuggestion[] {
     });
   }
 
-  if (/clerk|auth|login/i.test(text)) {
+  if (/clerk|auth|login|sign in|user account|oauth/i.test(text)) {
     add({
       name: "Auth provider",
       purpose: "User sign-in",
@@ -114,7 +139,7 @@ export function suggestIntegrations(project: Project): IntegrationSuggestion[] {
     });
   }
 
-  if (/vercel|deploy|next/i.test(text)) {
+  if (hasWeb || /vercel|deploy|next/i.test(text)) {
     add({
       name: "Hosting",
       purpose: "Deploy web app",
@@ -123,6 +148,71 @@ export function suggestIntegrations(project: Project): IntegrationSuggestion[] {
       connectionStatus: "needs-setup",
       notes: "Link GitHub repo. Build before push on large apps.",
       enables: "Preview + production deploys",
+    });
+  }
+
+  if (hasMobile) {
+    add({
+      name: "Mobile distribution",
+      purpose: "Ship iOS + Android builds",
+      providers: [
+        { name: "Apple Developer", url: "https://developer.apple.com/account/", costRange: "$99/yr", complexity: "medium" },
+        { name: "Google Play Console", url: "https://play.google.com/console/", costRange: "$25 one-time", complexity: "medium" },
+      ],
+      recommendedProvider: "Capacitor + store accounts",
+      connectionStatus: "not-connected",
+      notes: "Capacitor wraps your web app — store accounts are manual setup.",
+      enables: "App Store + Play Store",
+    });
+  }
+
+  if (hasDesktop) {
+    add({
+      name: "Desktop packaging",
+      purpose: "Windows + Mac installers",
+      providers: [{ name: "Tauri", url: "https://tauri.app/", costRange: "Free (self-sign certs optional)", complexity: "medium" }],
+      recommendedProvider: "Tauri",
+      connectionStatus: "not-connected",
+      notes: "Same web UI as desktop app — code signing for prod releases.",
+      enables: "Native desktop installers",
+    });
+  }
+
+  if (platforms.includes("api") || /api|webhook|rest|graphql/i.test(text)) {
+    add({
+      name: "API layer",
+      purpose: "Public or internal HTTP API",
+      providers: [
+        { name: "Next.js Route Handlers", url: "https://nextjs.org/docs/app/building-your-application/routing/route-handlers", costRange: "Included with Vercel", complexity: "low" },
+      ],
+      recommendedProvider: "Next.js Route Handlers",
+      connectionStatus: "not-connected",
+      notes: "Same repo as web — add auth middleware before exposing routes.",
+      enables: "REST/JSON endpoints",
+    });
+  }
+
+  // Greenfield fallback — never return empty after scan
+  if (out.length === 0) {
+    add({
+      name: "Hosting",
+      purpose: "Deploy web app",
+      providers: [{ name: "Vercel", url: "https://vercel.com/dashboard", costRange: "$0–$40/mo", complexity: "low" }],
+      recommendedProvider: "Vercel",
+      connectionStatus: "needs-setup",
+      notes: "Default starter — link GitHub when repo exists.",
+      enables: "Preview + production deploys",
+    });
+    add({
+      name: "Database + Auth",
+      purpose: "Data storage when app grows",
+      providers: [
+        { name: "Supabase", url: "https://supabase.com/dashboard", costRange: "$0–$25/mo free tier", complexity: "low" },
+      ],
+      recommendedProvider: "Supabase",
+      connectionStatus: "not-connected",
+      notes: "Add when you need users or saved data.",
+      enables: "Auth, Postgres, RLS",
     });
   }
 
@@ -135,4 +225,10 @@ export function markIntegrationConnected(
   status: IntegrationSuggestion["connectionStatus"],
 ): IntegrationSuggestion[] {
   return suggestions.map((s) => (s.id === id ? { ...s, connectionStatus: status } : s));
+}
+
+export function integrationScanSummary(project: Project): string {
+  const n = suggestIntegrations(project).length;
+  const platforms = project.orchestration?.scope.platforms?.join(", ") || "web";
+  return `Scanned scope, goals, platforms (${platforms}) — ${n} API${n === 1 ? "" : "s"} recommended.`;
 }

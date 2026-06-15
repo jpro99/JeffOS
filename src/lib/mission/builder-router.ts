@@ -12,6 +12,10 @@ import {
   formatEnhancementBlock,
   suggestBuilderEnhancements,
 } from "@/lib/mission/builder-enhancements";
+import {
+  formatOneDaySprintBlock,
+  isOneDaySprintIntent,
+} from "@/lib/mission/portfolio-pulse";
 import { resolveGodBotRelativePath } from "@/lib/command-center/paths";
 import type { MissionControlState, Project } from "@/lib/types";
 
@@ -60,6 +64,7 @@ export function classifyBuilderIntent(text: string): BuilderRoute {
 function finishBuilderResult(
   result: BuilderResult,
   intent: string,
+  state: MissionControlState,
   options?: BuilderBuildOptions,
 ): BuilderResult {
   let prompt = result.prompt;
@@ -69,6 +74,10 @@ function finishBuilderResult(
   }
 
   prompt += formatEnhancementBlock(result.project, result.route, intent);
+
+  if (isOneDaySprintIntent(intent)) {
+    prompt += formatOneDaySprintBlock(state);
+  }
 
   const session = result.project.ops.commandSession;
   const updatedProject: Project = session
@@ -125,6 +134,8 @@ PRODUCT SPEC — ship these in jeff-mission-control
 5. **Honest verify** — after build, Rescan + verify still gates ship
 6. **Guided walkthrough** — EasyGuidedJourney walks every step to end product after Build it
 7. **Add on →** — stack new ideas on same build; AI suggests upgrades beyond the ask
+8. **Portfolio pulse** — EasyPortfolioPulse tracks all projects, verify, backlog
+9. **One-day sprint** — God/Builder prompts compress bots to ship in one day not weeks
 
 Read: AI-COMMAND-CENTER/CONTROL_TOWER.md, projects/jeff-os.md
 Repo: ${project.path}
@@ -282,7 +293,7 @@ export function buildFromIntent(
   }
 
   if (!result) return null;
-  return finishBuilderResult(result, trimmed, options);
+  return finishBuilderResult(result, trimmed, state, options);
 }
 
 /** Stack a new idea on the current build — same project, merged intent */

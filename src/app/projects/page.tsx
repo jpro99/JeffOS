@@ -33,10 +33,10 @@ export default function ProjectsPage() {
           </p>
         </div>
         <Link
-          href="/projects/new"
+          href="/easy/new"
           className="rounded-full bg-teal-500/15 px-5 py-2.5 text-sm font-medium text-teal-200 ring-1 ring-teal-500/25"
         >
-          + New project
+          + New application
         </Link>
       </div>
 
