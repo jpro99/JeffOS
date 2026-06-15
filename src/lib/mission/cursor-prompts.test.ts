@@ -66,9 +66,9 @@ describe("cursor-prompts — add to project", () => {
     assert.equal(cleaned, "add a connect button");
   });
 
-  it("bullets long voice ramble in header", () => {
+  it("bullets long voice ramble when sentences are complete", () => {
     const long =
-      "Build remote desktop for Edgar. Users invite someone and click Connect. Show a banner on screen. Compare RustDesk first. Push updates to all 8 PCs in the office. Auto install agents with PowerShell admin. Bypass UAC if needed.";
+      "Improve the settings page layout for clarity. Users should find the export action within two clicks. Add clear section headers above each group of controls. Keep spacing consistent with the Easy Work cockpit style. Document the change briefly in the God Bot markdown file. Verify the layout still works at mobile width.";
     const brief = formatIntentBrief(cleanAddIntent(long));
     assert.match(brief, /^- /m);
   });
