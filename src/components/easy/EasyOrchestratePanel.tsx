@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { CostPattern, Project } from "@/lib/types";
 import { useMissionControl } from "@/lib/store/context";
 import {
@@ -29,27 +29,54 @@ export function EasyOrchestratePanel({
 
   const live = state.projects.find((p) => p.id === project.id) ?? project;
   const orch = live.orchestration;
-  if (!orch) return null;
 
-  const resolvedIntent =
-    intent?.trim() ||
-    orch.scope.pitch ||
-    live.description ||
-    live.goals.join("; ") ||
-    `Build ${live.name}`;
+  const resolvedIntent = useMemo(
+    () =>
+      intent?.trim() ||
+      orch?.scope.pitch ||
+      live.description ||
+      live.goals.join("; ") ||
+      `Build ${live.name}`,
+    [intent, orch?.scope.pitch, live.description, live.goals, live.name],
+  );
 
-  const save = (next: Project) => {
-    updateProject({ ...next, lastUpdated: new Date().toISOString() });
-  };
+  const save = useCallback(
+    (next: Project) => {
+      updateProject({ ...next, lastUpdated: new Date().toISOString() });
+    },
+    [updateProject],
+  );
 
-  const patchOrch = (patch: Partial<typeof orch>) => {
-    save({ ...live, orchestration: { ...orch, ...patch } });
-  };
-
-  const scrollToPrompt = () => {
+  const scrollToPrompt = useCallback(() => {
     requestAnimationFrame(() => {
       promptRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+  }, []);
+
+  const onApprove = useCallback(async () => {
+    if (!orch?.plan) {
+      setMsg("Generate plan first");
+      return;
+    }
+    const approved = approvePlan(live, state.bots);
+    const withPrompt = persistApprovedBuildPrompt(approved, resolvedIntent, state);
+    save(withPrompt);
+    addActivity("Plan approved — Cursor prompt ready", "project", live.id);
+
+    const text = withPrompt.ops.commandSession?.lastPrompt ?? "";
+    const ok = text ? await copyToClipboard(text) : false;
+    setMsg(
+      ok
+        ? "Copied! Paste in Cursor agent chat on your project folder."
+        : "Prompt ready below — select all and copy.",
+    );
+    scrollToPrompt();
+  }, [live, orch?.plan, resolvedIntent, state, save, addActivity, scrollToPrompt]);
+
+  if (!orch) return null;
+
+  const patchOrch = (patch: Partial<typeof orch>) => {
+    save({ ...live, orchestration: { ...orch, ...patch } });
   };
 
   const generatePlan = () => {
@@ -67,26 +94,6 @@ export function EasyOrchestratePanel({
     setMsg("Plan ready — click Approve plan to unlock the Cursor prompt");
     addActivity(`Generated plan: ${live.name}`, "routing", live.id);
   };
-
-  const onApprove = useCallback(async () => {
-    if (!orch.plan) {
-      setMsg("Generate plan first");
-      return;
-    }
-    const approved = approvePlan(live, state.bots);
-    const withPrompt = persistApprovedBuildPrompt(approved, resolvedIntent, state);
-    save(withPrompt);
-    addActivity("Plan approved — Cursor prompt ready", "project", live.id);
-
-    const text = withPrompt.ops.commandSession?.lastPrompt ?? "";
-    const ok = text ? await copyToClipboard(text) : false;
-    setMsg(
-      ok
-        ? "Copied! Paste in Cursor agent chat on your project folder."
-        : "Prompt ready below — select all and copy.",
-    );
-    scrollToPrompt();
-  }, [live, orch.plan, resolvedIntent, state, save, addActivity]);
 
   const openInCursor = async () => {
     if (!live.path) {

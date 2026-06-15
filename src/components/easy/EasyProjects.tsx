@@ -22,9 +22,9 @@ export function EasyProjects() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-50">All projects</h1>
+        <h1 className="text-2xl font-semibold text-zinc-50">Your projects</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Use tabs above to hop between projects — each opens with status + Fix next at the top.
+          Tap a project below, or use the tabs at the top to switch anytime.
         </p>
       </div>
 

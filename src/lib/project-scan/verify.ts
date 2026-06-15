@@ -1,8 +1,9 @@
 import { exec } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
-import path from "path";
 import type { FolderScan } from "@/lib/project-scan/analyze";
+import { detectRepoProfile } from "@/lib/project-scan/detect-repo";
+import { parseBuildLogIssues } from "@/lib/project-scan/error-patterns";
 import { uid } from "@/lib/utils";
 
 const execAsync = promisify(exec);
@@ -13,6 +14,8 @@ export interface VerifyIssue {
   detail: string;
   severity: "low" | "medium" | "high" | "critical";
   source: "build" | "lint" | "typecheck" | "scan";
+  patternId?: string;
+  fixType?: "toolchain" | "code" | "config" | "env";
 }
 
 export interface VerifyCheck {
@@ -64,13 +67,14 @@ function verifyEnv(script: "build" | "lint"): NodeJS.ProcessEnv {
 async function runNpmScript(
   cwd: string,
   script: "build" | "lint",
+  commandOverride?: string,
   timeoutMs = 180_000,
-): Promise<{ ok: boolean; output: string; spawnFailed?: boolean }> {
+): Promise<{ ok: boolean; output: string; spawnFailed?: boolean; command: string }> {
   if (!fs.existsSync(cwd)) {
-    return { ok: false, output: `Project folder not found: ${cwd}` };
+    return { ok: false, output: `Project folder not found: ${cwd}`, command: commandOverride ?? `npm run ${script}` };
   }
 
-  const command = `npm run ${script}`;
+  const command = commandOverride ?? `npm run ${script}`;
   try {
     const { stdout, stderr } = await execAsync(command, {
       cwd,
@@ -79,7 +83,7 @@ async function runNpmScript(
       shell: process.platform === "win32" ? "cmd.exe" : "/bin/sh",
       env: verifyEnv(script),
     });
-    return { ok: true, output: `${stdout}\n${stderr}`.trim() };
+    return { ok: true, output: `${stdout}\n${stderr}`.trim(), command };
   } catch (error) {
     const err = error as {
       stdout?: string;
@@ -88,128 +92,31 @@ async function runNpmScript(
       code?: string | number;
     };
     const output = [err.stdout, err.stderr, err.message].filter(Boolean).join("\n");
-    const spawnFailed = /spawn EINVAL|ENOENT.*npm/i.test(output);
+    const spawnFailed = /spawn EINVAL|ENOENT.*npm|ENOENT.*pnpm/i.test(output);
     return {
       ok: false,
       output: output || `npm run ${script} exited with code ${err.code ?? "1"}`,
       spawnFailed,
+      command,
     };
   }
 }
 
-function pushIssue(
-  issues: VerifyIssue[],
-  seen: Set<string>,
-  partial: Omit<VerifyIssue, "id">,
-): void {
-  if (seen.has(partial.title)) return;
-  seen.add(partial.title);
-  issues.push({ ...partial, id: uid("verify") });
-}
-
-function isNoiseLine(trimmed: string): boolean {
-  if (/^\s*at\s+/i.test(trimmed)) return true;
-  if (/node_modules[/\\]/i.test(trimmed)) return true;
-  if (/^Command failed:/i.test(trimmed)) return true;
-  if (/^>\s+\S/.test(trimmed)) return true;
-  if (/^⚠\s|^Warning:/i.test(trimmed)) return true;
-  if (/^npm ERR!/i.test(trimmed)) return true;
-  return false;
-}
-
-function isProjectPath(filePath: string): boolean {
-  return !/node_modules[/\\]/i.test(filePath);
-}
-
-function parseBuildOutput(output: string, source: VerifyIssue["source"]): VerifyIssue[] {
-  const issues: VerifyIssue[] = [];
-  const seen = new Set<string>();
-
-  for (const line of output.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || isNoiseLine(trimmed)) continue;
-
-    const explicitErr = trimmed.match(/^Error:\s*(.+)$/i);
-    if (explicitErr) {
-      pushIssue(issues, seen, {
-        title: explicitErr[1].slice(0, 140),
-        detail: trimmed,
-        severity: "critical",
-        source,
-      });
-      continue;
-    }
-
-    const tsMatch = trimmed.match(/error TS(\d+):\s*(.+)/i);
-    if (tsMatch) {
-      pushIssue(issues, seen, {
-        title: `TypeScript TS${tsMatch[1]}: ${tsMatch[2].slice(0, 120)}`,
-        detail: trimmed,
-        severity: "high",
-        source,
-      });
-      continue;
-    }
-
-    const nextMatch = trimmed.match(
-      /^(?:Error:\s*)?(?:×\s*)?(.+\.(?:tsx?|jsx?|mjs|cjs|vue|svelte|css|scss)):(\d+):(\d+)/i,
-    );
-    if (nextMatch && isProjectPath(nextMatch[1])) {
-      pushIssue(issues, seen, {
-        title: `${path.basename(nextMatch[1])}:${nextMatch[2]} — ${nextMatch[1].replace(/\\/g, "/").split("/").slice(-2).join("/")}`,
-        detail: trimmed,
-        severity: "high",
-        source,
-      });
-      continue;
-    }
-
-    const fileMatch = trimmed.match(
-      /^(.+\.(?:tsx?|jsx?|vue|svelte|css|scss))\:(\d+)\:(\d+)\s*[-–]?\s*(?:error|Error)\s*(.+)$/i,
-    );
-    if (fileMatch && isProjectPath(fileMatch[1])) {
-      pushIssue(issues, seen, {
-        title: `${path.basename(fileMatch[1])}:${fileMatch[2]} — ${fileMatch[4].slice(0, 100)}`,
-        detail: trimmed,
-        severity: "high",
-        source,
-      });
-      continue;
-    }
-
-    if (/^Module not found:|Cannot find module/i.test(trimmed) && isProjectPath(trimmed)) {
-      pushIssue(issues, seen, {
-        title: trimmed.slice(0, 140),
-        detail: trimmed,
-        severity: "high",
-        source,
-      });
-      continue;
-    }
-
-    if (/Failed to compile/i.test(trimmed)) {
-      pushIssue(issues, seen, {
-        title: "Failed to compile",
-        detail: trimmed,
-        severity: "critical",
-        source,
-      });
-    }
-  }
-
-  if (issues.length === 0) {
-    const tail = logTail(output, 10);
-    if (tail) {
-      pushIssue(issues, seen, {
-        title: "npm run build failed — see log below",
-        detail: tail,
-        severity: "critical",
-        source,
-      });
-    }
-  }
-
-  return issues.slice(0, 6);
+function parseBuildOutput(
+  output: string,
+  source: VerifyIssue["source"],
+  folderPath: string,
+  repoProfile: ReturnType<typeof detectRepoProfile>,
+): VerifyIssue[] {
+  return parseBuildLogIssues(output, { repoPath: folderPath, repoProfile }, source).map((p) => ({
+    id: uid("verify"),
+    title: p.title,
+    detail: p.detail,
+    severity: p.severity,
+    source: p.source,
+    patternId: p.patternId,
+    fixType: p.fixType,
+  }));
 }
 
 function hasScript(scan: FolderScan, name: string): boolean {
@@ -310,22 +217,25 @@ export async function verifyProjectBuild(
   }
 
   let buildLogTail = "";
+  const repoProfile = scan.repoProfile ?? detectRepoProfile(folderPath);
+  const buildCommand = repoProfile.buildCommand;
+  const lintCommand = repoProfile.lintCommand ?? "npm run lint";
 
   if (hasScript(scan, "build")) {
-    const result = await runNpmScript(folderPath, "build");
+    const result = await runNpmScript(folderPath, "build", buildCommand);
     buildLogTail = logTail(result.output);
 
     if (result.spawnFailed) {
       checks.push({
         name: "build",
-        label: "npm run build",
-        command: "npm run build",
+        label: buildCommand,
+        command: buildCommand,
         passed: false,
         output: result.output,
         issues: [
           {
             id: uid("verify"),
-            title: "Could not run npm on this machine",
+            title: "Could not run build command on this machine",
             detail: result.output,
             severity: "critical",
             source: "scan",
@@ -333,12 +243,14 @@ export async function verifyProjectBuild(
         ],
       });
     } else {
-      let issues = result.ok ? [] : parseBuildOutput(result.output, "build");
+      let issues = result.ok
+        ? []
+        : parseBuildOutput(result.output, "build", folderPath, repoProfile);
       if (!result.ok && issues.length === 0) {
         issues = [
           {
             id: uid("verify"),
-            title: "npm run build failed",
+            title: `${buildCommand} failed`,
             detail: buildLogTail || "No output — check path and dependencies",
             severity: "critical",
             source: "build",
@@ -347,8 +259,8 @@ export async function verifyProjectBuild(
       }
       checks.push({
         name: "build",
-        label: "npm run build",
-        command: "npm run build",
+        label: buildCommand,
+        command: buildCommand,
         passed: result.ok,
         output: result.output.slice(-4000),
         issues,
@@ -373,12 +285,14 @@ export async function verifyProjectBuild(
   );
 
   if (hasScript(scan, "lint") && !buildSpawnFailed && buildCheck?.passed) {
-    const result = await runNpmScript(folderPath, "lint", 120_000);
-    const issues = result.ok ? [] : parseBuildOutput(result.output, "lint");
+    const result = await runNpmScript(folderPath, "lint", lintCommand, 120_000);
+    const issues = result.ok
+      ? []
+      : parseBuildOutput(result.output, "lint", folderPath, repoProfile);
     checks.push({
       name: "lint",
-      label: "npm run lint",
-      command: "npm run lint",
+      label: lintCommand,
+      command: lintCommand,
       passed: result.ok,
       output: result.output.slice(-3000),
       issues,

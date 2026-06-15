@@ -1,4 +1,5 @@
 import type { Project } from "@/lib/types";
+import { seedState } from "@/lib/seed/data";
 import { attachOps } from "@/lib/seed/project-ops";
 import { attachConnections } from "@/lib/connections/helpers";
 import { attachOrchestration } from "@/lib/orchestration/defaults";
@@ -189,6 +190,13 @@ export function buildProjectsFromScan(
   if (!byId.has("proj-new-idea")) {
     const seed = existingProjects.find((p) => p.id === "proj-new-idea");
     if (seed) byId.set(seed.id, seed);
+  }
+
+  if (!byId.has("proj-jeff-os")) {
+    const seed =
+      existingProjects.find((p) => p.id === "proj-jeff-os") ??
+      seedState.projects.find((p) => p.id === "proj-jeff-os");
+    if (seed) byId.set("proj-jeff-os", seed);
   }
 
   const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };

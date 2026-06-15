@@ -4,8 +4,18 @@ import type { ProjectFeature } from "@/lib/types";
 /** Long visionary briefs — not comma-split prose */
 export function isVisionIntent(intent: string): boolean {
   const t = intent.trim();
-  if (t.length > 160) return true;
-  return /\b(mainstream|transform|dos|windows|apple|\bmac\b|best version|give to anybody|install it|god mode|whole world|programming into|leap|revolution|anybody else)\b/i.test(
+  const visionKeywords =
+    /\b(mainstream jeff os|transform the product|best version of|give to anybody|god mode for everyone|whole world|programming into|leap forward|revolution|anybody else|command center for everybody|platform for everyone)\b/i;
+  if (visionKeywords.test(t)) return true;
+  if (t.length > 420 && /\b(vision|platform|everyone|anybody|mainstream)\b/i.test(t)) return true;
+  return false;
+}
+
+/** Single UI/UX tweak — never fan out to 4 vision features */
+export function isSingleTaskIntent(intent: string): boolean {
+  const t = intent.trim();
+  if (t.length > 320) return false;
+  return /\b(button|click|fix errors|copy|paste|panel|label|text|show|hide|display|ui|ux|screen|wording|sticky|scroll|tooltip|message)\b/i.test(
     t,
   );
 }
@@ -57,6 +67,18 @@ function visionFeaturesFromIntent(intent: string): ProjectFeature[] {
 export function featuresFromIntent(intent: string): ProjectFeature[] {
   const trimmed = intent.trim();
   if (!trimmed) return [];
+
+  if (isSingleTaskIntent(trimmed)) {
+    return [
+      createFeature({
+        name: titleFromChunk(trimmed),
+        description: trimmed,
+        type: "core",
+        priority: "P0",
+        status: "not-built",
+      }),
+    ];
+  }
 
   if (isVisionIntent(trimmed)) {
     return visionFeaturesFromIntent(trimmed);

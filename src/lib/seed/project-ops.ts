@@ -366,7 +366,42 @@ export const PROJECT_OPS: Record<string, ProjectOps> = {
       quickAction: "continue-build",
     },
     godModeIdeas: [
-      { id: "gm-bk-1", question: "Ultimate version?", insight: "Full practice OS — intake to discharge with AI co-pilot at every step.", leverage: "high" },
+      {
+        id: "gm-bk-1",
+        question: "Ultimate version?",
+        insight: "Full practice OS — intake to discharge with AI co-pilot at every step.",
+        leverage: "high",
+      },
+      {
+        id: "gm-bk-2",
+        question: "Beat every intake product?",
+        insight: "Mobile-first client intake with doc scan, OCR, and auto-populated schedules — zero re-typing for staff.",
+        leverage: "high",
+      },
+      {
+        id: "gm-bk-3",
+        question: "Means test that never lies?",
+        insight: "Eligibility engine that flags CMI issues before filing — with plain-English explainers for clients.",
+        leverage: "high",
+      },
+      {
+        id: "gm-bk-4",
+        question: "Creditor matrix on autopilot?",
+        insight: "Import claims, dedupe creditors, and generate matrix + mailing labels from one upload.",
+        leverage: "medium",
+      },
+      {
+        id: "gm-bk-5",
+        question: "E-file errors competitors fear?",
+        insight: "Retry queue + human-readable fix paths when CM/ECF rejects — staff never stares at raw XML.",
+        leverage: "high",
+      },
+      {
+        id: "gm-bk-6",
+        question: "Practice pulse for partners?",
+        insight: "Partner dashboard: filings in pipeline, bottlenecks, and revenue-at-risk before Monday meeting.",
+        leverage: "long-term",
+      },
     ],
     notes: "Canonical: C:\\Projects\\ChapterAI",
   },

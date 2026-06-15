@@ -1,5 +1,7 @@
+import "server-only";
 import fs from "fs";
 import path from "path";
+import { detectRepoProfileFromSignals, DEFAULT_REPO_PROFILE, type RepoProfile } from "@/lib/project-scan/repo-profile";
 
 export interface FolderScan {
   exists: boolean;
@@ -32,6 +34,8 @@ export interface FolderScan {
   vercelLinked: boolean;
   vercelProjectId?: string;
   deploySignals: string[];
+  /** Package manager, turbo, build/install commands */
+  repoProfile?: RepoProfile;
 }
 
 function readHead(filePath: string, max = 600): string {
@@ -309,18 +313,43 @@ export function scanProjectFolder(folderPath: string): FolderScan {
     try {
       const pkg = JSON.parse(fs.readFileSync(path.join(folderPath, "package.json"), "utf8")) as {
         name?: string;
+        packageManager?: string;
         scripts?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+        dependencies?: Record<string, string>;
       };
       scan.packageName = pkg.name;
       scan.scripts = Object.keys(pkg.scripts ?? {}).slice(0, 12);
       if (pkg.scripts?.build) scan.signals.push("Has build script");
       if (pkg.scripts?.test || pkg.scripts?.["test:e2e"]) scan.signals.push("Has test scripts");
       if (pkg.scripts?.dev) scan.signals.push("Has dev script");
+      scan.repoProfile = detectRepoProfileFromSignals({
+        folderPath,
+        packageManagerField: pkg.packageManager,
+        scripts: pkg.scripts,
+        devDependencies: pkg.devDependencies,
+        dependencies: pkg.dependencies,
+        hasTurboJson: fs.existsSync(path.join(folderPath, "turbo.json")),
+        hasPnpmWorkspace: fs.existsSync(path.join(folderPath, "pnpm-workspace.yaml")),
+        hasPackageJson: true,
+        hasSln: entries.some((e) => e.endsWith(".sln")),
+      });
     } catch {
       scan.signals.push("package.json unreadable");
+      scan.repoProfile = DEFAULT_REPO_PROFILE;
     }
   } else if (entries.some((e) => e.endsWith(".sln"))) {
     scan.signals.push(".NET solution on disk");
+    scan.repoProfile = detectRepoProfileFromSignals({
+      folderPath,
+      hasSln: true,
+      hasPackageJson: false,
+    });
+  } else {
+    scan.repoProfile = detectRepoProfileFromSignals({
+      folderPath,
+      hasPackageJson: false,
+    });
   }
 
   if (scan.hasReadme) scan.signals.push("README present");
@@ -340,6 +369,14 @@ export function scanProjectFolder(folderPath: string): FolderScan {
   }
   if (!scan.hasPackageJson && !entries.some((e) => e.endsWith(".sln"))) {
     scan.signals.push("No package.json — may be empty or non-Node");
+  }
+
+  scan.repoProfile = scan.repoProfile ?? DEFAULT_REPO_PROFILE;
+
+  if (scan.repoProfile.repoKind === "turbo-monorepo") {
+    scan.signals.push(`Turbo monorepo · ${scan.repoProfile.packageManager}`);
+  } else if (scan.repoProfile.packageManager !== "npm") {
+    scan.signals.push(`Package manager: ${scan.repoProfile.packageManager}`);
   }
 
   return scan;

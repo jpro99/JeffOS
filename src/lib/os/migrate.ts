@@ -1,6 +1,6 @@
 import { seedState } from "@/lib/seed/data";
 import { uid } from "@/lib/utils";
-import { attachOps } from "@/lib/seed/project-ops";
+import { attachOps, PROJECT_OPS } from "@/lib/seed/project-ops";
 import { attachConnections } from "@/lib/connections/helpers";
 import { attachOrchestration } from "@/lib/orchestration/defaults";
 import { enrichProjectGodBotFile } from "@/lib/command-center/doc-paths";
@@ -43,7 +43,7 @@ function enrichProject(project: Project): Project {
   return attachOrchestration(attachConnections(enrichProjectGodBotFile(withOps)));
 }
 
-function ensureJeffOs(
+export function ensureJeffOs(
   projects: Project[],
   bots: BotDefinition[],
 ): { projects: Project[]; bots: BotDefinition[] } {
@@ -63,6 +63,51 @@ function ensureJeffOs(
   return { projects: nextProjects, bots: nextBots };
 }
 
+function isLegacyBloatedPrompt(text: string | undefined): boolean {
+  if (!text?.trim()) return false;
+  return (
+    text.includes("COMMAND SESSION") ||
+    text.includes("MASTER ORCHESTRATOR") ||
+    text.includes("STEP 24") ||
+    text.includes("Session bots: 6 roles · 24 steps")
+  );
+}
+
+function stripLegacyBloatedPrompts(projects: Project[]): Project[] {
+  return projects.map((p) => {
+    const cs = p.ops.commandSession;
+    const efm = p.ops.errorFixMission;
+    let ops = p.ops;
+
+    if (cs?.lastPrompt && isLegacyBloatedPrompt(cs.lastPrompt)) {
+      ops = {
+        ...ops,
+        commandSession: { ...cs, lastPrompt: "" },
+      };
+    }
+    if (efm?.lastPrompt && isLegacyBloatedPrompt(efm.lastPrompt)) {
+      ops = {
+        ...ops,
+        errorFixMission: { ...efm, lastPrompt: "" },
+      };
+    }
+    return ops === p.ops ? p : { ...p, ops };
+  });
+}
+
+function mergeSeedGodModeIdeas(projects: Project[]): Project[] {
+  return projects.map((p) => {
+    const seedOps = PROJECT_OPS[p.id];
+    if (!seedOps?.godModeIdeas?.length) return p;
+    const existing = new Set(p.ops.godModeIdeas.map((g) => g.id));
+    const merged = [...p.ops.godModeIdeas];
+    for (const idea of seedOps.godModeIdeas) {
+      if (!existing.has(idea.id)) merged.push(idea);
+    }
+    return merged.length === p.ops.godModeIdeas.length ? p : { ...p, ops: { ...p.ops, godModeIdeas: merged } };
+  });
+}
+
 /** Merge persisted state with current schema */
 export function migrateState(raw: Partial<MissionControlState>): MissionControlState {
   const base = { ...seedState, ...raw };
@@ -79,6 +124,8 @@ export function migrateState(raw: Partial<MissionControlState>): MissionControlS
 
   let bots = base.bots?.length ? base.bots : seedState.bots;
   ({ projects, bots } = ensureJeffOs(projects, bots));
+  projects = stripLegacyBloatedPrompts(projects);
+  projects = mergeSeedGodModeIdeas(projects);
 
   return {
     ...seedState,

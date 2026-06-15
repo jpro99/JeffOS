@@ -3,22 +3,14 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import path from "path";
 import fs from "fs";
-import { DEFAULT_PROJECTS_ROOT, EXTRA_SCAN_ROOTS } from "@/lib/discovery/catalog";
-import { COMMAND_CENTER_ROOT } from "@/lib/command-center/paths";
+import { isAllowedCreatePath } from "@/lib/project-scan/create-folder";
 
 export const runtime = "nodejs";
 
 const execFileAsync = promisify(execFile);
 
-const ALLOWED_ROOTS = [
-  DEFAULT_PROJECTS_ROOT,
-  ...EXTRA_SCAN_ROOTS,
-  COMMAND_CENTER_ROOT,
-].map((r) => path.normalize(r).toLowerCase());
-
 function isAllowedPath(target: string): boolean {
-  const normalized = path.normalize(target).toLowerCase();
-  return ALLOWED_ROOTS.some((root) => normalized.startsWith(root));
+  return isAllowedCreatePath(target);
 }
 
 export async function POST(request: Request) {

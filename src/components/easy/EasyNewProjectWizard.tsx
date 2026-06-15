@@ -17,6 +17,7 @@ import {
   type IntakeInput,
   type WizardStep,
 } from "@/lib/mission/new-project-wizard";
+import { applyBotsToProject } from "@/lib/mission/suggest-project-bots";
 import { CopyButton } from "@/components/ui/CopyButton";
 import {
   ProjectLocationPicker,
@@ -201,7 +202,11 @@ export function EasyNewProjectWizard() {
     const intake: IntakeInput = intakeForRec;
     const targetPath = resolvedTargetPath;
 
-    const preview = planDraftProject(draftProject(intake, state.bots), state.bots, buildMode);
+    const preview = applyBotsToProject(
+      planDraftProject(draftProject(intake, state.bots), state.bots, buildMode),
+      state.bots,
+      buildMode,
+    );
     const withPath = { ...preview, path: targetPath, pathExists: false };
     const launch = buildWizardLaunchPrompt(withPath, buildMode, state);
     if (!launch) {

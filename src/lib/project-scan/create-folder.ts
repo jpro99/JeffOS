@@ -8,7 +8,14 @@ export function isAllowedCreatePath(target: string): boolean {
   const normalized = path.normalize(target).toLowerCase();
   const desktop = path.normalize(path.join(os.homedir(), "Desktop")).toLowerCase();
   const documents = path.normalize(path.join(os.homedir(), "Documents")).toLowerCase();
-  return normalized.startsWith(desktop) || normalized.startsWith(documents);
+  const home = path.normalize(os.homedir()).toLowerCase();
+  // Allow anywhere under user profile (Browse picker) + standard project roots
+  return (
+    normalized.startsWith(desktop) ||
+    normalized.startsWith(documents) ||
+    normalized.startsWith(home) ||
+    normalized.startsWith("c:\\projects")
+  );
 }
 
 export interface CreateFolderResult {

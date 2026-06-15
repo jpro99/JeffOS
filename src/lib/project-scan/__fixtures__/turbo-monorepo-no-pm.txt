@@ -1,0 +1,11 @@
+> build
+> turbo run build
+
+
+   • Packages in scope: @example/web, @example/api, @example/worker
+   • Running build in 3 packages
+   • Remote caching disabled
+
+
+  x Unable to find package manager binary: cannot find binary path
+  `-> cannot find binary path

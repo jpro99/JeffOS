@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Project } from "@/lib/types";
 import { getBuildPrerequisites, suggestProjectFolder } from "@/lib/mission/build-prerequisites";
 import {
@@ -14,28 +14,63 @@ import { useMissionControl } from "@/lib/store/context";
 import { useFolderSync } from "@/lib/hooks/use-folder-sync";
 import { cn, copyToClipboard } from "@/lib/utils";
 
-export function ProjectFolderBanner({ project }: { project: Project }) {
+function parentFromPath(fullPath: string): string {
+  const trimmed = fullPath.trim();
+  const idx = trimmed.lastIndexOf("\\");
+  if (idx <= 0) return DEFAULT_PROJECTS_ROOT;
+  return trimmed.slice(0, idx);
+}
+
+export function ProjectFolderBanner({
+  project,
+  collapseWhenLinked,
+}: {
+  project: Project;
+  /** Collapse to one line when folder is found — expand with Change folder */
+  collapseWhenLinked?: boolean;
+}) {
   const { state, updateProject } = useMissionControl();
   const { status: diskStatus, checking, recheck } = useFolderSync(project);
   const pre = getBuildPrerequisites(project);
   const suggested = suggestProjectFolder(project);
   const displayPath = project.path?.trim() || diskStatus?.path || suggested;
 
-  const [editing, setEditing] = useState(false);
+  const onDisk = Boolean(diskStatus?.exists === true || project.pathExists === true);
+  const stillChecking = checking && !diskStatus;
+
+  const [editing, setEditing] = useState(() => !onDisk);
   const [location, setLocation] = useState<ProjectLocationValue>(() => ({
-    parentFolder: DEFAULT_PROJECTS_ROOT,
+    parentFolder: project.path ? parentFromPath(project.path) : DEFAULT_PROJECTS_ROOT,
     targetPath: displayPath,
   }));
   const [msg, setMsg] = useState<string | null>(null);
 
-  const onDisk = Boolean(diskStatus?.exists || project.pathExists === true);
+  useEffect(() => {
+    if (onDisk) {
+      setMsg(null);
+      if (collapseWhenLinked) setEditing(false);
+      return;
+    }
+    if (stillChecking) return;
+    setEditing(true);
+    if (project.path?.trim()) {
+      setMsg("Folder not found at saved path — browse to the new location and Apply folder.");
+    }
+  }, [onDisk, stillChecking, project.path, collapseWhenLinked]);
+
+  useEffect(() => {
+    setLocation({
+      parentFolder: project.path ? parentFromPath(project.path) : DEFAULT_PROJECTS_ROOT,
+      targetPath: project.path?.trim() || suggested,
+    });
+  }, [project.id, project.path, suggested]);
 
   const status = useMemo(() => {
-    if (checking && !diskStatus) {
+    if (stillChecking) {
       return {
-        label: "Checking folder on disk…",
+        label: "Checking folder…",
         tone: "warn" as const,
-        who: "Jeff OS looks at your PC so it knows if Cursor already created files here.",
+        who: "Looking on your PC…",
       };
     }
     if (onDisk) {
@@ -47,50 +82,90 @@ export function ProjectFolderBanner({ project }: { project: Project }) {
       if (diskStatus?.hasPackageJson) bits.push("package.json");
       const detail = bits.length ? ` (${bits.join(", ")})` : "";
       return {
-        label: `Folder on your PC${detail} — Cursor builds files here`,
+        label: `Folder linked${detail}`,
         tone: "ready" as const,
-        who: diskStatus?.message ?? "Path matches a real folder. Paste prompts in Cursor on this path.",
+        who: diskStatus?.message ?? "Path matches a real folder on your PC.",
       };
     }
     if (project.path?.trim()) {
       return {
-        label: "Path set — folder not found on disk yet",
+        label: "Saved path not found",
         tone: "warn" as const,
-        who: "Create the folder below, or paste in Cursor — it may scaffold for you. Click Re-check after Cursor writes files.",
+        who: "Browse on my PC → pick folder → Apply folder.",
       };
     }
     return {
-      label: "No folder linked — path auto-suggested from project name",
+      label: "No folder linked yet",
       tone: "warn" as const,
-      who: "Set path below, or Create folder now (localhost). Cursor scaffolds if you paste without a folder.",
+      who: "Browse to an existing folder or create a new one.",
     };
-  }, [checking, diskStatus, onDisk, project.path]);
+  }, [stillChecking, diskStatus, onDisk, project.path]);
 
-  const savePath = () => {
-    const path = resolveProjectPath(
-      location.parentFolder,
-      project.name,
-      location.targetPath || undefined,
-    );
-    updateProject({ ...project, path });
-    setEditing(false);
-    setMsg(`Saved folder path: ${path} — checking disk…`);
-    void recheck().then((data) => {
-      if (data?.exists) setMsg(`Folder found on disk: ${path}`);
+  const applyFolder = async (pathOverride?: string) => {
+    const path =
+      (pathOverride ?? location.targetPath).trim() ||
+      resolveProjectPath(location.parentFolder, project.name, location.targetPath || undefined);
+    if (!path) {
+      setMsg("Enter or browse to a folder path first");
+      return;
+    }
+
+    const res = await fetch("/api/projects/folder-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, project: { ...project, path } }),
     });
+    const data = (await res.json()) as {
+      ok: boolean;
+      exists: boolean;
+      path: string;
+      message: string;
+    };
+
+    updateProject({
+      ...project,
+      path: data.path || path,
+      pathExists: data.exists,
+    });
+
+    if (data.exists) {
+      setMsg(null);
+      setEditing(false);
+    } else {
+      setMsg(data.message || `Applied ${path} — folder not found. Create it or pick another path.`);
+    }
   };
 
   const createFolder = async () => {
     const path =
-      project.path?.trim() ||
+      location.targetPath.trim() ||
       resolveProjectPath(location.parentFolder, project.name, location.targetPath || undefined);
     const result = await createProjectFolderOnDisk(path);
     if (result.ok) {
-      updateProject({ ...project, path, pathExists: true });
-      await recheck();
+      await applyFolder(path);
     }
     setMsg(result.message);
   };
+
+  if (collapseWhenLinked && onDisk && !editing) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.07] px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-emerald-200">{status.label}</p>
+          <p className="mt-0.5 truncate font-mono text-[11px] text-zinc-500" title={displayPath}>
+            {displayPath}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="shrink-0 rounded-full border border-white/10 px-4 py-2 text-xs text-zinc-300 hover:bg-white/[0.05]"
+        >
+          Change folder
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -104,7 +179,7 @@ export function ProjectFolderBanner({ project }: { project: Project }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-            Project folder on disk
+            Folder on your PC
           </p>
           <p
             className={cn(
@@ -122,15 +197,20 @@ export function ProjectFolderBanner({ project }: { project: Project }) {
             disabled={checking}
             className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-zinc-400 hover:text-zinc-200 disabled:opacity-50"
           >
-            {checking ? "Checking…" : "Re-check disk"}
+            {checking ? "Checking…" : "Re-check"}
           </button>
-          <button
-            type="button"
-            onClick={() => setEditing((e) => !e)}
-            className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-zinc-400 hover:text-zinc-200"
-          >
-            {editing ? "Cancel" : "Change folder"}
-          </button>
+          {onDisk && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(false);
+                setMsg(null);
+              }}
+              className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-zinc-400 hover:text-zinc-200"
+            >
+              Done
+            </button>
+          )}
           {pre.shellCommand && (
             <button
               type="button"
@@ -140,50 +220,37 @@ export function ProjectFolderBanner({ project }: { project: Project }) {
               Copy PowerShell
             </button>
           )}
-          {!onDisk && (
+          {!onDisk && !stillChecking && (
             <button
               type="button"
               onClick={() => void createFolder()}
               className="rounded-full bg-teal-500/90 px-3 py-1.5 text-[10px] font-semibold text-black hover:bg-teal-400"
             >
-              Create folder now
+              Create folder
             </button>
           )}
         </div>
       </div>
 
       <p className="mt-2 font-mono text-sm text-teal-200/95 break-all">{displayPath}</p>
-      <p className="mt-2 text-xs text-zinc-500">{status.who}</p>
+      {!stillChecking && <p className="mt-2 text-xs text-zinc-500">{status.who}</p>}
 
-      <ul className="mt-3 space-y-1 text-[11px] text-zinc-600">
-        <li>
-          <strong className="text-zinc-500">Jeff OS</strong> — plans only (browser). Re-checks disk on load.
-        </li>
-        <li>
-          <strong className="text-zinc-500">Cursor</strong> — builds all code when you paste the prompt below.
-        </li>
-      </ul>
-
-      {editing && (
+      {(editing || !onDisk) && !stillChecking && (
         <div className="mt-4 border-t border-white/[0.06] pt-4">
           <ProjectLocationPicker
             projectName={project.name}
             parentOptions={state.settings.projectsRoots}
             value={location}
             onChange={setLocation}
+            mode="link"
             compact
+            applyLabel="Apply folder"
+            onApply={applyFolder}
           />
-          <button
-            type="button"
-            onClick={savePath}
-            className="mt-3 rounded-full bg-teal-500 px-5 py-2 text-xs font-semibold text-black"
-          >
-            Save folder path
-          </button>
         </div>
       )}
 
-      {msg && <p className="mt-2 text-xs text-teal-400">{msg}</p>}
+      {msg && <p className="mt-2 text-xs text-amber-300">{msg}</p>}
     </div>
   );
 }

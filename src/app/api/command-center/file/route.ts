@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import {
-  COMMAND_CENTER_ROOT,
+  getCommandCenterRoot,
   isSafeRelative,
   isUnderCommandCenter,
   isWritableRelative,
@@ -90,7 +90,7 @@ export async function PUT(request: Request) {
 export async function POST() {
   return NextResponse.json({
     ok: true,
-    root: COMMAND_CENTER_ROOT.replace(/\\/g, "/"),
+    root: getCommandCenterRoot().replace(/\\/g, "/"),
     readable: ["CONTROL_TOWER.md", "PROJECT_INDEX.md", "WORKER_BOTS.md", "projects/*.md"],
   });
 }

@@ -101,6 +101,43 @@ export function JourneyActivePanel({ project, phase, onFolderCreated, onRefresh 
     }
   };
 
+  const applyFolder = async (pathOverride?: string) => {
+    const path =
+      (pathOverride ?? location.targetPath).trim() ||
+      resolveProjectPath(location.parentFolder, project.name, location.targetPath || undefined);
+    if (!path) {
+      setMsg("Browse or type a folder path first");
+      return;
+    }
+
+    const res = await fetch("/api/projects/folder-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, project: { ...project, path } }),
+    });
+    const data = (await res.json()) as {
+      ok: boolean;
+      exists: boolean;
+      path: string;
+      message: string;
+    };
+
+    updateProject({
+      ...project,
+      path: data.path || path,
+      pathExists: data.exists,
+    });
+
+    if (data.exists) {
+      setMsg(`Applied folder — found on disk: ${data.path || path}`);
+      onFolderCreated?.();
+    } else {
+      setMsg(data.message || `Saved ${path} — not found yet. Create it or pick another folder.`);
+    }
+  };
+
+  const linkingExisting = Boolean(project.path?.trim()) && project.pathExists !== true;
+
   const openCursor = async () => {
     const folder = project.path ?? targetPath;
     const res = await fetch("/api/projects/open-in-cursor", {
@@ -155,23 +192,38 @@ export function JourneyActivePanel({ project, phase, onFolderCreated, onRefresh 
     return (
       <section className="space-y-4 rounded-2xl border border-indigo-500/25 bg-indigo-500/[0.06] p-5">
         <p className="text-sm text-zinc-400">
-          Jeff OS creates an empty folder on your PC. Cursor fills it when you build. Default: Desktop — change below
-          if you want.
+          {linkingExisting
+            ? "Jeff OS did not move your folder — the saved path may be wrong. Browse on my PC, pick the folder, then Apply folder."
+            : "Jeff OS creates an empty folder on your PC. Cursor fills it when you build. Default: Desktop — change below if you want."}
         </p>
         <ProjectLocationPicker
           projectName={project.name}
           parentOptions={[DESKTOP, DEFAULT_PROJECTS_ROOT, ...state.settings.projectsRoots]}
           value={location}
           onChange={setLocation}
+          mode={linkingExisting ? "link" : "create"}
+          applyLabel="Apply folder"
+          onApply={applyFolder}
         />
-        <button
-          type="button"
-          id="journey-create-folder"
-          onClick={() => void createFolder()}
-          className="w-full rounded-full bg-indigo-500 py-3.5 text-sm font-semibold text-white hover:bg-indigo-400"
-        >
-          Create folder on my PC
-        </button>
+        {!linkingExisting && (
+          <button
+            type="button"
+            id="journey-create-folder"
+            onClick={() => void createFolder()}
+            className="w-full rounded-full bg-indigo-500 py-3.5 text-sm font-semibold text-white hover:bg-indigo-400"
+          >
+            Create folder on my PC
+          </button>
+        )}
+        {linkingExisting && (
+          <button
+            type="button"
+            onClick={() => void createFolder()}
+            className="w-full rounded-full border border-white/10 py-3 text-sm text-zinc-300 hover:bg-white/[0.05]"
+          >
+            Create new folder at this path instead
+          </button>
+        )}
         {msg && <p className="text-sm text-teal-400">{msg}</p>}
       </section>
     );

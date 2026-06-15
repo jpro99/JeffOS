@@ -115,6 +115,7 @@ export function reconcileOpsFromScan(
     readinessLevel,
     percentComplete,
     liveVerify,
+    repoProfile: scan.repoProfile ?? ops.repoProfile,
   };
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useMissionControl } from "@/lib/store/context";
@@ -22,13 +23,22 @@ const TONE_CLASS: Record<string, string> = {
 
 function parseProjectIdFromPath(pathname: string): string | null {
   const easy = pathname.match(/^\/easy\/projects\/([^/]+)/);
-  if (easy) return easy[1];
+  if (easy) return decodeURIComponent(easy[1]);
   const classic = pathname.match(/^\/projects\/([^/]+)/);
-  if (classic && classic[1] !== "new") return classic[1];
+  if (classic && classic[1] !== "new") return decodeURIComponent(classic[1]);
   return null;
 }
 
-export function ProjectCommandStrip({ mode }: { mode: "easy" | "classic" }) {
+function scrollToProjectWorkspace() {
+  const el = document.getElementById("project-workspace");
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  } else {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
+
+export function ProjectCommandStrip({ mode, compact }: { mode: "easy" | "classic"; compact?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -53,14 +63,29 @@ export function ProjectCommandStrip({ mode }: { mode: "easy" | "classic" }) {
   );
 
   const goTo = useCallback(
-    (id: string) => {
+    (id: string, opts?: { replace?: boolean }) => {
+      if (!state.projects.some((p) => p.id === id)) return;
       switchProject(id);
       openWorkspace(id);
-      router.push(projectHref(id));
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const href = projectHref(id);
+      if (opts?.replace) {
+        router.replace(href);
+      } else {
+        router.push(href);
+      }
+      requestAnimationFrame(() => scrollToProjectWorkspace());
     },
-    [router, switchProject, openWorkspace, projectHref],
+    [router, switchProject, openWorkspace, projectHref, state.projects],
   );
+
+  useEffect(() => {
+    const id = parseProjectIdFromPath(pathname);
+    if (!id || !state.projects.some((p) => p.id === id)) return;
+    if (id !== state.workspace.activeProjectId) {
+      switchProject(id);
+      openWorkspace(id);
+    }
+  }, [pathname, state.projects, state.workspace.activeProjectId, switchProject, openWorkspace]);
 
   const goNext = useCallback(() => {
     if (projects.length === 0) return;
@@ -123,24 +148,28 @@ export function ProjectCommandStrip({ mode }: { mode: "easy" | "classic" }) {
     <div className="border-b border-white/[0.06] bg-[#0c0d10]/95">
       <div className={cn("mx-auto px-4 py-2", mode === "easy" ? "max-w-3xl" : "max-w-[1600px]")}>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={goPrev}
-            title="Previous project (Alt+←)"
-            className="shrink-0 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
-          >
-            ← Prev
-          </button>
-          <button
-            type="button"
-            onClick={goNext}
-            title="Next project (Alt+→)"
-            className="shrink-0 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
-          >
-            Next →
-          </button>
+          {!compact && (
+            <>
+              <button
+                type="button"
+                onClick={goPrev}
+                title="Previous project (Alt+←)"
+                className="shrink-0 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
+              >
+                ← Prev
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                title="Next project (Alt+→)"
+                className="shrink-0 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
+              >
+                Next →
+              </button>
+            </>
+          )}
 
-          {activeProject && isLocal && activeProject.path && (
+          {!compact && activeProject && isLocal && activeProject.path && (
             <button
               type="button"
               onClick={() => void pushActive()}
@@ -170,15 +199,22 @@ export function ProjectCommandStrip({ mode }: { mode: "easy" | "classic" }) {
             const st = getProjectQuickStatus(p);
             const active = p.id === activeId;
             const pinned = state.workspace.pinnedProjectIds.includes(p.id);
+            const href = projectHref(p.id);
             return (
-              <button
+              <Link
                 key={p.id}
-                type="button"
+                href={href}
                 role="tab"
                 aria-selected={active}
                 data-project-tab={p.id}
-                onClick={() => goTo(p.id)}
-                onDoubleClick={() => togglePinProject(p.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  goTo(p.id);
+                }}
+                onDoubleClick={(e) => {
+                  e.preventDefault();
+                  togglePinProject(p.id);
+                }}
                 title={`${p.name} — ${st.phaseLabel}${st.errorCount ? ` · ${st.errorCount} errors` : ""} · double-click pin`}
                 className={cn(
                   "group flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left transition",
@@ -197,14 +233,16 @@ export function ProjectCommandStrip({ mode }: { mode: "easy" | "classic" }) {
                 >
                   {st.errorCount > 0 ? st.errorCount : st.phaseLabel.slice(0, 4)}
                 </span>
-              </button>
+              </Link>
             );
           })}
         </div>
 
-        <p className="mt-1 text-[9px] text-zinc-700">
-          Click tab = switch instantly · Alt+←/→ = prev/next · double-click tab = pin · Push = active project (localhost)
-        </p>
+        {!compact && (
+          <p className="mt-1 text-[9px] text-zinc-700">
+            Click tab = switch · Alt+←/→ = prev/next · double-click = pin
+          </p>
+        )}
       </div>
     </div>
   );

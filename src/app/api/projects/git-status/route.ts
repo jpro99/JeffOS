@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import path from "path";
-import { readGitStatus } from "@/lib/project-scan/git-status";
-import { scanProjectFolder } from "@/lib/project-scan/analyze";
-import { DEFAULT_PROJECTS_ROOT, EXTRA_SCAN_ROOTS } from "@/lib/discovery/catalog";
+import { readGitStatus } from "@/lib/project-scan/git-status";import { DEFAULT_PROJECTS_ROOT, EXTRA_SCAN_ROOTS } from "@/lib/discovery/catalog";
 import type { Project } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -30,8 +28,8 @@ export async function POST(request: Request) {
     }
 
     const git = await readGitStatus(project.path);
+    const { scanProjectFolder } = await import("@/lib/project-scan/scan-folder.server");
     const scan = scanProjectFolder(project.path);
-
     return NextResponse.json({
       ok: true,
       git,

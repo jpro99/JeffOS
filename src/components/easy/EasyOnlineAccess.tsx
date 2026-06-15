@@ -93,6 +93,10 @@ export function EasyOnlineAccess({ compact = false }: { compact?: boolean }) {
 
   const isOnline = Boolean(liveOrigin);
 
+  if (compact && !isOnline) {
+    return null;
+  }
+
   if (compact && isOnline) {
     return (
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-4 py-2">

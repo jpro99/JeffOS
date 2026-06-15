@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import {
-  parseGodBotSections,
-  scanProjectFolder,
-} from "@/lib/project-scan/analyze";
 import { buildProjectBrief } from "@/lib/project-scan/brief";
 import { buildConnectionInventory } from "@/lib/connections/inventory";
 import { applyVerifyToProject } from "@/lib/project-scan/sync-verify";
@@ -12,7 +8,12 @@ import { reconcileOpsFromScan } from "@/lib/project-scan/reconcile";
 import type { VerifyReport } from "@/lib/project-scan/sync-verify";
 import { verifyProjectBuild } from "@/lib/project-scan/verify";
 import type { VerifyResult } from "@/lib/project-scan/verify";
-import { resolveGodBotRelativePath, toAbsolute, isUnderCommandCenter, isSafeRelative } from "@/lib/command-center/paths";
+import {
+  resolveGodBotRelativePath,
+  toAbsolute,
+  isUnderCommandCenter,
+  isSafeRelative,
+} from "@/lib/command-center/paths";
 import { DEFAULT_PROJECTS_ROOT, EXTRA_SCAN_ROOTS } from "@/lib/discovery/catalog";
 import type { Project } from "@/lib/types";
 
@@ -27,7 +28,11 @@ function isAllowedPath(target: string): boolean {
   return ALLOWED_ROOTS.some((root) => normalized.startsWith(root));
 }
 
-function loadGodBot(slug: string, godBotFile?: string) {
+function loadGodBot(
+  slug: string,
+  parseGodBotSections: (content: string) => { purpose: string; goals: string[]; gotchas: string[] },
+  godBotFile?: string,
+) {
   const relative = godBotFile ?? `projects/${slug}.md`;
   if (!isSafeRelative(relative)) return { purpose: "", goals: [], gotchas: [] };
 
@@ -42,6 +47,10 @@ function loadGodBot(slug: string, godBotFile?: string) {
 
 export async function POST(request: Request) {
   try {
+    const { scanProjectFolder, parseGodBotSections } = await import(
+      "@/lib/project-scan/scan-folder.server"
+    );
+
     const body = (await request.json()) as { project?: Project; verify?: boolean };
     const project = body.project;
     const runVerify = body.verify === true;
@@ -66,7 +75,11 @@ export async function POST(request: Request) {
     }
 
     const scan = scanProjectFolder(project.path);
-    const godBot = loadGodBot(project.slug, project.godBotFile ?? resolveGodBotRelativePath(project));
+    const godBot = loadGodBot(
+      project.slug,
+      parseGodBotSections,
+      project.godBotFile ?? resolveGodBotRelativePath(project),
+    );
 
     let verify: VerifyResult | undefined;
     let report: VerifyReport | undefined;

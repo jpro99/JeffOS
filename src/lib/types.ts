@@ -1,3 +1,7 @@
+import type { RepoProfile } from "@/lib/project-scan/repo-profile";
+
+export type { RepoProfile };
+
 export type InterfaceId = "cursor" | "claude-code" | "regular-claude" | "future-custom";
 
 export type ModelClassId =
@@ -144,6 +148,11 @@ export interface ProjectError {
   couldGoWrong: string;
   taskType: TaskTypeId;
   resolved?: boolean;
+  /** From error-patterns.ts — toolchain vs code */
+  fixType?: "toolchain" | "code" | "config" | "env";
+  patternId?: string;
+  suggestedCommands?: string[];
+  doNotRewriteAppCode?: boolean;
 }
 
 export interface ErrorFixStep {
@@ -264,6 +273,8 @@ export interface ProjectOps {
     canAdvance: boolean;
     summary: string;
   };
+  /** Detected from disk scan — package manager, turbo, build command */
+  repoProfile?: RepoProfile;
 }
 
 export interface Project {
@@ -448,6 +459,16 @@ export interface IntegrationSuggestion {
   enables?: string;
 }
 
+export interface ProjectBotSuggestionSnapshot {
+  buildMode: "god" | "standard" | "careful";
+  generatedAt: string;
+  recommendedGodBotId: string;
+  recommendedWorkerBotIds: string[];
+  strategyNote: string;
+  headline: string;
+  approach: string;
+}
+
 export interface ProjectOrchestration {
   scope: ProjectScope;
   features: ProjectFeature[];
@@ -456,6 +477,8 @@ export interface ProjectOrchestration {
   integrationSuggestions: IntegrationSuggestion[];
   securityScore: number;
   planningStatus: PlanningStatus;
+  /** Last suggested bot lineup from Settings or wizard */
+  botSuggestion?: ProjectBotSuggestionSnapshot;
   /** Easy Mode learnings — what worked vs avoid repeating */
   retrospective?: {
     workingWell: string[];

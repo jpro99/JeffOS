@@ -11,6 +11,7 @@ import {
   resolveAddonsRelativePath,
   resolveGodBotRelativePath,
 } from "@/lib/command-center/doc-paths";
+import { repoPath } from "@/lib/project-scan/repo-root";
 
 export {
   enrichProjectGodBotFile,
@@ -31,7 +32,7 @@ export {
 const LEGACY_DOCS_ROOT = path.normalize("C:\\Projects\\Project Command\\AI-COMMAND-CENTER");
 
 function repoDocsRoot(): string {
-  return path.normalize(path.join(process.cwd(), "docs", "command-center"));
+  return path.normalize(repoPath("docs", "command-center"));
 }
 
 /** Absolute path to Jeff OS markdown docs on disk */
@@ -47,7 +48,9 @@ export function getCommandCenterRoot(): string {
 }
 
 /** @deprecated prefer getCommandCenterRoot() */
-export const COMMAND_CENTER_ROOT = resolveCommandCenterRoot();
+export function getCommandCenterRootLazy(): string {
+  return resolveCommandCenterRoot();
+}
 
 /** Absolute path for prompts when full path helps Cursor */
 export function formatDocsReadAbsolute(relativePath: string): string {

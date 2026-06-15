@@ -19,19 +19,29 @@ export interface VerifyReport {
 
 function verifyIssueToError(issue: VerifyIssue): ProjectError {
   const id = issue.id.startsWith("verify-") ? issue.id : `verify-${issue.id}`;
+  const isToolchain = issue.fixType === "toolchain";
   return {
     id,
     title: issue.title,
     likelyCause: issue.detail.slice(0, 200),
     severity: issue.severity,
-    fixRisk: "medium",
-    confidence: 0.92,
-    recommendedFix: `Fix: ${issue.title}`,
+    fixRisk: isToolchain ? "safe" : "medium",
+    confidence: issue.patternId ? 0.95 : 0.92,
+    recommendedFix: isToolchain
+      ? "Fix toolchain: corepack enable, install package manager, then rebuild"
+      : `Fix: ${issue.title}`,
     aboutToDo: issue.detail.slice(0, 500),
-    whyDoingIt: "Build/lint verify found this on disk",
-    couldGoWrong: "May be one of several compile errors — fix and recheck",
+    whyDoingIt: issue.patternId
+      ? `Matched error pattern ${issue.patternId} from build log`
+      : "Build/lint verify found this on disk",
+    couldGoWrong: isToolchain
+      ? "Do not rewrite app code until pnpm/npm install succeeds"
+      : "May be one of several compile errors — fix and recheck",
     taskType: issue.source === "lint" ? "test" : "bugfix",
     resolved: false,
+    fixType: issue.fixType,
+    patternId: issue.patternId,
+    doNotRewriteAppCode: isToolchain,
   };
 }
 

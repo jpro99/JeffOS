@@ -7,8 +7,7 @@ import type {
   Project,
   ProjectError,
 } from "@/lib/types";
-import { resolveGodBotRelativePath } from "@/lib/command-center/doc-paths";
-import { jeffOsDocsAbsolutePath, standardDocsReadBlock } from "@/lib/jeff-os/branding";
+import { buildCompactFixPrompt } from "@/lib/mission/cursor-prompts";
 import { uid } from "@/lib/utils";
 
 function resolveBotId(bots: BotDefinition[], type: BotTypeId): string {
@@ -215,20 +214,6 @@ export function completeErrorFix(project: Project): Project {
   };
 }
 
-function phaseLabel(phase: ErrorFixStep["phase"]): string {
-  if (phase === "fix") return "Builder";
-  if (phase === "debug") return "Debug";
-  if (phase === "test") return "Test";
-  if (phase === "security") return "Security";
-  return phase;
-}
-
-const WORKER_RULES = `Rules:
-- Minimal diff. Match repo conventions.
-- Run build/test if project has them.
-- After each step reply: STEP N DONE — one line summary
-- Mode: caveman — short, direct. No essay.`;
-
 export function buildErrorFixBundle(
   project: Project,
   mission: ErrorFixMission,
@@ -237,87 +222,8 @@ export function buildErrorFixBundle(
   const steps = selectedSteps(mission);
   if (steps.length === 0) return "";
 
-  const godBotRel = resolveGodBotRelativePath(project);
-  const godBotPath = `${jeffOsDocsAbsolutePath()}\\${godBotRel.replace(/\//g, "\\")}`;
-  const caveman =
-    state.settings.cavemanDefault ||
-    project.jeffMode === "caveman" ||
-    state.settings.jeffMode === "caveman";
-  const issues = [...new Set(steps.map((s) => s.errorTitle))];
-
-  const orchestratorPlan = steps
-    .map((s, i) => `${i + 1}. ${s.botName} (${phaseLabel(s.phase)}) → ${s.errorTitle}: ${s.summary}`)
-    .join("\n");
-
-  const godInsight = project.ops.godModeIdeas[0];
-
-  const boot = `# FIX MISSION — ${project.name}
-Jeff selected ${issues.length} issue(s), ${steps.length} bot step(s). Fix before shipping.
-
-═══════════════════════════════════════
-CONTROL TOWER — MASTER ORCHESTRATOR
-═══════════════════════════════════════
-Read first:
-${standardDocsReadBlock(godBotRel)}
-4. Repo README.md + AGENTS.md if exist
-
-Project path: ${project.path ?? "CONFIRM WITH JEFF"}
-Voice: ${caveman ? "CAVEman — short, direct, no fluff" : "normal"}
-Jeff mode: ${project.jeffMode}
-
-You are the orchestrator. Run these bot steps IN ORDER. Do not skip.
-Each step = one bot persona. Complete step → report STEP N DONE → next step.
-
-Orchestration plan (Jeff checked these):
-${orchestratorPlan}
-${godInsight ? `\nGod Mode insight: ${godInsight.insight}` : ""}
-
-═══════════════════════════════════════
-GOD BOT BOOT
-═══════════════════════════════════════
-Load ${godBotPath}
-Jeff wants: fix selected errors/blockers below. Ship-ready when done.
-
-Issues in this mission:
-${issues.map((t) => `- ${t}`).join("\n")}
-
-═══════════════════════════════════════
-BOT EXECUTION — do in order
-═══════════════════════════════════════
-`;
-
-  let stepNum = 0;
-  const blocks: string[] = [];
-
-  for (const step of steps) {
-    stepNum += 1;
-    const bot = state.bots.find((b) => b.id === step.botId);
-    blocks.push(`### STEP ${stepNum} — ${step.botName} (${phaseLabel(step.phase)} Bot)
-Orchestrator assigns: ${step.botName}
-Issue: ${step.errorTitle}
-Task: ${step.summary}
-Detail: ${step.detail}
-${bot?.role ? `Role: ${bot.role}` : ""}
-Repo: ${project.path ?? "CONFIRM PATH"}
-
-${WORKER_RULES}
-
-Execute STEP ${stepNum} now. When done reply exactly:
-STEP ${stepNum} DONE — [one line what you fixed]
-`);
-  }
-
-  const footer = `
-═══════════════════════════════════════
-MISSION COMPLETE
-═══════════════════════════════════════
-When ALL ${stepNum} steps done, reply:
-FIX MISSION COMPLETE — build passes, tests green, Jeff can ship.
-
-Jeff marks complete in Jeff OS Easy Mode.
-`;
-
-  return boot + blocks.join("\n") + footer;
+  const issueTitles = [...new Set(steps.map((s) => s.errorTitle))];
+  return buildCompactFixPrompt(project, state, { issueTitles });
 }
 
 export function groupStepsByIssue(steps: ErrorFixStep[]) {

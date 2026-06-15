@@ -11,6 +11,7 @@ import { EasyOnlineAccess } from "@/components/easy/EasyOnlineAccess";
 import { VoiceMicButton } from "@/components/voice/VoiceMicButton";
 import { JEFF_OS_NAME } from "@/lib/jeff-os/branding";
 import { ProjectCommandStrip } from "@/components/journey/ProjectCommandStrip";
+import { EasyProjectRail } from "@/components/easy/EasyProjectRail";
 
 const easyNav = [
   { href: "/easy", label: "Start", icon: "◉" },
@@ -22,10 +23,14 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { state } = useMissionControl();
   const isNewWizard = pathname.startsWith("/easy/new");
+  const projectRoute = pathname.match(/^\/easy\/projects\/([^/]+)/);
+  const projectId = projectRoute?.[1] && projectRoute[1] !== "new" ? projectRoute[1] : null;
+  const isProjectArea = Boolean(projectId);
+  const showBuilderHub = !isNewWizard && !isProjectArea;
 
   return (
     <div className="min-h-screen bg-[#0a0b0e] bg-[radial-gradient(ellipse_at_top,_rgba(20,184,166,0.08)_0%,_transparent_50%)] text-zinc-100 pb-[env(safe-area-inset-bottom)]">
-      <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#0a0b0e]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0a0b0e]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 px-4 py-4">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500/15 text-teal-400 ring-1 ring-teal-500/25">
@@ -33,7 +38,9 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
             </div>
             <div>
               <p className="text-sm font-semibold text-zinc-100">{JEFF_OS_NAME}</p>
-              <p className="text-[10px] text-zinc-600">Projects · plans · fixes</p>
+              <p className="text-[10px] text-zinc-600">
+                {isProjectArea ? "Work · add · fix · check · Settings on left" : "Pick a project · fix errors · ship"}
+              </p>
             </div>
           </div>
 
@@ -60,26 +67,32 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-2">
-            <VoiceMicButton compact />
-            <Link
-              href="/"
-              className="rounded-full border border-white/[0.08] px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300"
-            >
-              Classic view
-            </Link>
+            {!isProjectArea && <VoiceMicButton compact />}
+            {!isProjectArea && (
+              <Link
+                href="/"
+                className="rounded-full border border-white/[0.08] px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300"
+              >
+                Classic view
+              </Link>
+            )}
           </div>
         </div>
 
-        <div className="mx-auto max-w-3xl px-4 pb-3">
-          <ExperiencePicker compact />
-        </div>
+        {!isProjectArea && (
+          <div className="mx-auto max-w-3xl px-4 pb-3">
+            <ExperiencePicker compact />
+          </div>
+        )}
 
-        {!isNewWizard && state.projects.length > 0 && <ProjectCommandStrip mode="easy" />}
+        {!isNewWizard && state.projects.length > 0 && (
+          <ProjectCommandStrip mode="easy" compact={isProjectArea} />
+        )}
       </header>
 
-      <EasyOnlineAccess compact />
+      {!isProjectArea && <EasyOnlineAccess compact />}
 
-      {!isNewWizard && (
+      {showBuilderHub && (
         <>
           <div id="builder-hub">
             <EasyBuilderHub />
@@ -88,9 +101,28 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
         </>
       )}
 
-      <main className="mx-auto max-w-3xl px-4 py-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">{children}</main>
+      <div className={cn("relative", isProjectArea && "md:pl-16")}>
+        {projectId && <EasyProjectRail projectId={projectId} />}
 
-      <footer className="fixed bottom-0 left-0 right-0 border-t border-white/[0.05] bg-[#0a0b0e]/95 px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-center text-[10px] text-zinc-600">
+        <main
+          id="project-workspace"
+          className={cn(
+            "mx-auto max-w-3xl px-4 py-8",
+            isProjectArea
+              ? "pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-[calc(4rem+env(safe-area-inset-bottom))]"
+              : "pb-[calc(4rem+env(safe-area-inset-bottom))]",
+          )}
+        >
+          {children}
+        </main>
+      </div>
+
+      <footer
+        className={cn(
+          "fixed bottom-0 left-0 right-0 border-t border-white/[0.05] bg-[#0a0b0e]/95 px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-center text-[10px] text-zinc-600",
+          isProjectArea && "hidden md:block",
+        )}
+      >
         Same data as Classic · level: {state.settings.experienceLevel}
       </footer>
     </div>

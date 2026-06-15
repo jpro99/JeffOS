@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Sidebar — dock on desktop */}
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-white/[0.05] bg-[#0c0d11]/95 backdrop-blur-2xl md:flex",
+            "fixed inset-y-0 left-0 z-50 hidden flex-col border-r border-white/[0.05] bg-[#0c0d11]/95 backdrop-blur-2xl md:flex",
             sidebarCompact ? "w-[68px]" : "w-56",
           )}
         >
@@ -125,7 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
         >
           {/* Top bar — workspace + route */}
-          <header className="sticky top-0 z-30 border-b border-white/[0.05] bg-[#0b0c0f]/85 backdrop-blur-2xl">
+          <header className="sticky top-0 z-40 border-b border-white/[0.05] bg-[#0b0c0f]/90 backdrop-blur-2xl">
             <div className="flex flex-wrap items-center gap-3 px-4 py-3 md:px-6">
               <ProjectSwitcher compact={mobile} />
 
@@ -179,7 +179,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <WorkspaceTabs />
 
           <div className="flex flex-1">
-            <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+            <main id="project-workspace" className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
             <ActiveContextRail />
           </div>
         </div>

@@ -39,7 +39,7 @@ export function ProjectJourneyRail({
   };
 
   return (
-    <div className="sticky top-0 z-30 -mx-4 border-b border-teal-500/20 bg-[#0a0b0e]/95 px-4 py-4 backdrop-blur-xl">
+    <div className="sticky top-16 z-20 -mx-4 border-b border-teal-500/20 bg-[#0a0b0e]/95 px-4 py-4 backdrop-blur-xl md:top-20">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-500/80">
         {JEFF_OS_NAME} — build flow (top to bottom, keep tapping Next)
       </p>

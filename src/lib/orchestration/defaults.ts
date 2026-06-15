@@ -1,4 +1,5 @@
 import type { BotDefinition, Project, ProjectFeature, ProjectOrchestration, ProjectScope } from "@/lib/types";
+import { resolveSuggestedGodBot } from "@/lib/mission/god-bot-resolver";
 import { uid } from "@/lib/utils";
 
 export function defaultScope(project: Project): ProjectScope {
@@ -82,7 +83,7 @@ export function createProjectShell(input: {
     .replace(/^-|-$/g, "");
   const id = `proj-${slug}`;
 
-  const project: Project = {
+  const shellBase: Project = {
     id,
     name: input.name,
     slug,
@@ -158,6 +159,15 @@ export function createProjectShell(input: {
       securityScore: 50,
       planningStatus: "draft",
     },
+  };
+
+  const godBot = resolveSuggestedGodBot(shellBase, input.bots);
+  const project: Project = {
+    ...shellBase,
+    assignedGodBotId: godBot.id,
+    activeBotStrategy: `${godBot.name} → Spec → Build`,
+    preferredInterface: godBot.preferredInterface,
+    preferredModelClass: godBot.preferredModelClass,
   };
 
   return project;

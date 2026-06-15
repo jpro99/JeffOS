@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { seedState, STORAGE_KEY } from "@/lib/seed/data";
-import { migrateState } from "@/lib/os/migrate";
+import { ensureJeffOs, migrateState } from "@/lib/os/migrate";
 import { computeRouting } from "@/lib/routing/engine";
 import { resolveQuickCommand } from "@/lib/intelligence/commands";
 import { createProjectShell } from "@/lib/orchestration/defaults";
@@ -86,16 +86,19 @@ function reducer(state: MissionControlState, action: Action): MissionControlStat
           voice: { ...state.workspace.voice, ...action.payload },
         },
       };
-    case "SYNC_PROJECTS":
+    case "SYNC_PROJECTS": {
+      const synced = ensureJeffOs(action.payload.projects, state.bots);
       return {
         ...state,
-        projects: action.payload.projects,
+        projects: synced.projects,
+        bots: synced.bots,
         settings: {
           ...state.settings,
           lastDiscoveryAt: action.payload.scannedAt,
           lastDiscoveryCount: action.payload.count,
         },
       };
+    }
     case "ADD_PROJECT":
       return {
         ...state,
@@ -115,6 +118,7 @@ function reducer(state: MissionControlState, action: Action): MissionControlStat
 }
 
 interface MissionControlContextValue {
+  hydrated: boolean;
   state: MissionControlState;
   updateSettings: (patch: Partial<AppSettings>) => void;
   updateProject: (project: Project) => void;
@@ -429,6 +433,7 @@ export function MissionControlProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<MissionControlContextValue>(
     () => ({
+      hydrated,
       state,
       updateSettings: (patch) => dispatch({ type: "UPDATE_SETTINGS", payload: patch }),
       updateProject: (project) => dispatch({ type: "UPDATE_PROJECT", payload: project }),
@@ -438,7 +443,8 @@ export function MissionControlProvider({ children }: { children: ReactNode }) {
       addRoutingHistory: (entry) => dispatch({ type: "ADD_ROUTING_HISTORY", payload: entry }),
       addActivity,
       resetData: () => dispatch({ type: "RESET" }),
-      getProject: (id) => state.projects.find((p) => p.id === id),
+      getProject: (id) =>
+        state.projects.find((p) => p.id === id) ?? seedState.projects.find((p) => p.id === id),
       getBot: (id) => state.bots.find((b) => b.id === id),
       activeProject,
       activeTask,
@@ -460,6 +466,7 @@ export function MissionControlProvider({ children }: { children: ReactNode }) {
       runQuickCommand,
     }),
     [
+      hydrated,
       state,
       addActivity,
       activeProject,
