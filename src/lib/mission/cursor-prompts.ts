@@ -109,6 +109,160 @@ function verifyLabel(project: Project): string {
   return resolveVerifyCommand(project).replace(/\s*\(.*$/, "").trim();
 }
 
+type AddIntentProfile = {
+  domain: "remote-desktop" | "auth" | "deploy" | "ui" | "generic";
+  phase1Goal: string;
+  phase2Later: string | null;
+  acceptance: string[];
+  architectTask: string;
+  specTask: string;
+  builderHint: string;
+  outOfScope: string[];
+};
+
+function stripPhase2Suffix(goal: string): string {
+  return goal.replace(/\s*\(Phase 2:.*\)$/i, "").trim();
+}
+
+function detectAddIntentProfile(cleaned: string, project: Project): AddIntentProfile {
+  const t = cleaned.toLowerCase();
+  const goal = synthesizeAddGoal(cleaned);
+  const verify = verifyLabel(project);
+
+  if (/\bremote|desktop|rdp|vnc|screen share\b/.test(t)) {
+    const files = /\bfile|transfer|upload|download\b/.test(t);
+    const fleet = /\b8 pc|eight pc|fleet|all pc|promote|multiple computer|8 computer/.test(t);
+    return {
+      domain: "remote-desktop",
+      phase1Goal: stripPhase2Suffix(goal),
+      phase2Later: fleet ?
+        "Enroll ~8 office PCs, fleet push updates, mass agent promote"
+      : "Multi-PC fleet, silent mass deploy, enterprise polish",
+      acceptance: [
+        "Host PC shows clear on-screen consent banner before guest gets control",
+        "Guest connects via invite link + one Connect button (Entra-signed where applicable)",
+        files ?
+          "Bidirectional file transfer works between two linked PCs in Phase 1"
+        : "Host can end session instantly; audit trail in Edgar logs",
+        `Reuse existing Edgar agent/web patterns; ${verify} passes`,
+      ],
+      architectTask:
+        "Map to Edgar .NET + Docker + Entra — compare MeshCentral, RustDesk, Tailscale Funnel; reuse before inventing protocol",
+      specTask: "Confirm acceptance bullets below — edit if wrong, then lock Phase 1 scope",
+      builderHint: "Smallest vertical slice in-repo — wire agent + web UI; no greenfield rewrite",
+      outOfScope: ["Full 8-PC fleet", "Silent install", "UAC/AV bypass", "Custom codec from scratch"],
+    };
+  }
+
+  if (/\b(auth|sign.?in|login|entra|oauth|sso|mfa)\b/.test(t)) {
+    return {
+      domain: "auth",
+      phase1Goal: stripPhase2Suffix(goal),
+      phase2Later: isBigAddIntent(cleaned) ? "Advanced roles, SSO edge cases, full audit UI" : null,
+      acceptance: [
+        "Happy path sign-in works for target user type",
+        "Secrets/tokens not logged; follows repo auth patterns",
+        "Security review items documented if any remain",
+        `${verify} passes`,
+      ],
+      architectTask: "Follow existing Entra/auth patterns in repo — no new auth library unless required",
+      specTask: "3 acceptance bullets — auth Phase 1 only",
+      builderHint: "Minimal diff — extend existing auth middleware/pages",
+      outOfScope: ["Full RBAC redesign", "Multi-tenant", "V2 admin console"],
+    };
+  }
+
+  if (/\b(deploy|docker|nas|vercel|ci|pipeline|release)\b/.test(t)) {
+    return {
+      domain: "deploy",
+      phase1Goal: stripPhase2Suffix(goal),
+      phase2Later: isBigAddIntent(cleaned) ? "Multi-env, auto-rollback, full monitoring" : null,
+      acceptance: [
+        "Documented deploy path Jeff can run repeatability",
+        "Secrets/env handled per God Bot — not hardcoded",
+        "Smoke check after deploy defined",
+        `${verify} passes`,
+      ],
+      architectTask: "Match existing Docker/NAS/Vercel patterns in repo — Deployment Bot mindset",
+      specTask: "3 acceptance bullets — deploy Phase 1 only",
+      builderHint: "Scripts/docs + minimal config diff — ship runnable path first",
+      outOfScope: ["Full observability stack", "Blue-green", "Multi-region"],
+    };
+  }
+
+  if (isSingleTaskIntent(cleaned) || /\b(ui|ux|button|panel|label|screen|wording|layout)\b/.test(t)) {
+    const big = isBigAddIntent(cleaned);
+    return {
+      domain: "ui",
+      phase1Goal: stripPhase2Suffix(goal),
+      phase2Later: null,
+      acceptance: [
+        "Visible UI change matches Jeff wants on desktop width",
+        "Matches existing component/style patterns",
+        `${verify} passes`,
+      ],
+      architectTask: "Reuse existing components — no new design system",
+      specTask: "1–3 acceptance bullets — what user sees/clicks",
+      builderHint: "Smallest UI diff; no drive-by refactors",
+      outOfScope: big ? ["Full redesign", "Mobile rewrite unless asked"] : [],
+    };
+  }
+
+  const big = isBigAddIntent(cleaned);
+  return {
+    domain: "generic",
+    phase1Goal: stripPhase2Suffix(goal),
+    phase2Later: big ? "Fleet, v2 features, polish — after Phase 1 ships" : null,
+    acceptance: [
+      "User-visible outcome matches Goal (Phase 1 only)",
+      "Minimal diff — matches repo conventions",
+      `${verify} passes`,
+    ],
+    architectTask: "Fit existing repo + stack — minimal diff, no greenfield rewrite",
+    specTask: big ? "3 acceptance bullets — Phase 1 ONLY, caveman" : "3 acceptance bullets — no essay",
+    builderHint: "Implement Phase 1 only — no scope creep",
+    outOfScope: big ? ["V2", "Full fleet", "Nice-to-have polish"] : [],
+  };
+}
+
+function formatAcceptanceBlock(acceptance: string[]): string {
+  return ["Acceptance (Spec Bot confirms, then build):", ...acceptance.map((a) => `- ${a}`)].join("\n");
+}
+
+function formatVoiceContext(cleaned: string, brief: string, profile: AddIntentProfile): string | null {
+  if (profile.domain !== "generic") return null;
+  if (!isFragmentedVoice(cleaned)) return null;
+  const merged = mergeVoiceFragments(cleaned);
+  if (!merged || merged === brief || merged.length < 24) return null;
+  return `Voice (context only — ignore broken period chunks):\n- ${merged.slice(0, 360)}`;
+}
+
+function formatStackLine(project: Project): string {
+  if (project.stack.length === 0) return "";
+  return `Stack: ${project.stack.slice(0, 6).join(" · ")}`;
+}
+
+function formatAddHeader(cleaned: string, brief: string, profile: AddIntentProfile, isBig: boolean): string {
+  if (!isBig && profile.domain === "ui" && isSingleTaskIntent(cleaned)) {
+    return brief.includes("\n- ") ? `Jeff wants:\n${brief}` : `Jeff wants: ${brief}`;
+  }
+
+  const voice = formatVoiceContext(cleaned, profile.phase1Goal, profile);
+  const lines = [`Goal (Phase 1): ${profile.phase1Goal}`];
+  if (profile.phase2Later) lines.push(`Later (Phase 2 — do NOT build now): ${profile.phase2Later}`);
+  lines.push(formatAcceptanceBlock(profile.acceptance));
+  if (voice) lines.push(voice);
+  return lines.join("\n\n");
+}
+
+function formatPhaseBlockFromProfile(profile: AddIntentProfile): string | null {
+  if (profile.outOfScope.length === 0 && !profile.phase2Later) return null;
+  const oos = profile.outOfScope.length > 0 ? profile.outOfScope.join(", ") : "v2, polish";
+  return `Phase 1 ONLY (this session):
+- Ship Goal above — acceptance bullets are the contract
+Out of scope now: ${oos}`;
+}
+
 /** Caveman brief for the prompt header — bullets only for real sentences, not voice fragments. */
 export function formatIntentBrief(cleaned: string): string {
   if (!cleaned) return "";
@@ -186,16 +340,19 @@ function needsSecurityStep(cleaned: string, buildMode: BuildMode): boolean {
   );
 }
 
-function formatPhaseBlock(cleaned: string): string | null {
+function formatPhaseBlock(cleaned: string, profile?: AddIntentProfile): string | null {
+  if (profile && (profile.outOfScope.length > 0 || profile.phase2Later)) {
+    return formatPhaseBlockFromProfile(profile);
+  }
   if (!isBigAddIntent(cleaned)) return null;
   const t = cleaned.toLowerCase();
-  let mvp = "Smallest shippable slice — 3 acceptance bullets, then code";
+  let mvp = "Smallest shippable slice — acceptance bullets above are the contract";
   if (/\bremote|desktop|rdp|screen share|vnc\b/.test(t)) {
     mvp =
-      "Spike one PC: invite → one Connect button → clear on-screen banner; compare MeshCentral/RustDesk/Tailscale before coding";
+      "Spike one PC: invite → Connect → consent banner; compare MeshCentral/RustDesk/Tailscale before coding";
   }
   if (/\b8 pc|fleet|all pc|push update|every computer\b/.test(t)) {
-    mvp = "Phase 1: one PC end-to-end; fleet push + multi-PC is Phase 2";
+    mvp = "One PC end-to-end; fleet push + multi-PC is Phase 2";
   }
   return `Phase 1 ONLY (this session):
 - ${mvp}
@@ -421,8 +578,9 @@ function addStepsForIntent(
   cleaned: string,
   intentBrief: string,
   buildMode: BuildMode,
+  profile: AddIntentProfile,
 ): AddStep[] {
-  const goal = synthesizeAddGoal(cleaned);
+  const goal = profile.phase1Goal;
   const oneLine = intentBrief.replace(/\n- /g, "; ").replace(/\s+/g, " ").trim();
   const isSmall = isSingleTaskIntent(oneLine) || oneLine.length < 200;
   const isBig = isBigAddIntent(cleaned);
@@ -438,7 +596,7 @@ function addStepsForIntent(
 
   const isFix = /\b(fix|bug|error|broken|crash|repair|patch)\b/i.test(oneLine);
 
-  if (isSmall && !careful && !isFix) {
+  if (isSmall && !careful && !isFix && profile.domain === "ui") {
     return [
       { n: 1, who: builder, task: goal },
       { n: 2, who: test, task: `Run \`${verifyShort}\` — must pass` },
@@ -453,37 +611,25 @@ function addStepsForIntent(
     ];
   }
 
-  const steps: AddStep[] = [
-    {
-      n: 1,
-      who: spec,
-      task: isBig ?
-        "3 acceptance bullets — Phase 1 ONLY, caveman"
-      : "3 acceptance bullets — no essay",
-    },
-  ];
+  const steps: AddStep[] = [{ n: 1, who: spec, task: profile.specTask }];
   let n = 2;
 
-  if (isBig || buildMode === "god") {
-    steps.push({
-      n: n++,
-      who: architect,
-      task: "Fit existing repo + stack — minimal diff, no greenfield rewrite",
-    });
+  if (isBig || buildMode === "god" || profile.domain !== "ui") {
+    steps.push({ n: n++, who: architect, task: profile.architectTask });
   }
 
   if (needsSecurityStep(cleaned, buildMode)) {
     steps.push({
       n: n++,
       who: security,
-      task: "Signed install + user consent — no UAC/AV bypass, no elevation hacks",
+      task: "Signed install + explicit user consent — no UAC/AV bypass, no elevation hacks",
     });
   }
 
   steps.push({
     n: n++,
     who: builder,
-    task: `Implement Phase 1 — ${goal}`,
+    task: `Implement Phase 1 — ${goal}. ${profile.builderHint}`,
   });
   steps.push({
     n: n++,
@@ -502,23 +648,23 @@ export function buildCompactAddPrompt(
 ): { prompt: string; stepCount: number } {
   const cleaned = cleanAddIntent(intent);
   const brief = formatIntentBrief(cleaned);
+  const profile = detectAddIntentProfile(cleaned, project);
+  const isBig = isBigAddIntent(cleaned);
   const repo = repoPath(project);
   const verify = resolveVerifyCommand(project);
   const godBot = resolveGodBotRelativePath(project);
   const readList = formatReadList(project, godBot);
+  const stackLine = formatStackLine(project);
   const buildMode = resolveBuildMode(project);
-  const steps = addStepsForIntent(project, state, cleaned, brief, buildMode);
+  const steps = addStepsForIntent(project, state, cleaned, brief, buildMode, profile);
   const stepBlock = steps.map((s) => `${s.n}. ${s.who} — ${s.task}`).join("\n");
-  const phaseBlock = formatPhaseBlock(cleaned);
+  const phaseBlock = isBig ? formatPhaseBlock(cleaned, profile) : null;
   const godSeed = formatGodModeSeed(project);
-
-  const header =
-    brief.includes("\n- ") ?
-      `Jeff wants:\n${brief}`
-    : `Jeff wants: ${brief}`;
+  const header = formatAddHeader(cleaned, brief, profile, isBig);
 
   const meta = [
     formatAddBotsBlock(project, state, godBot, steps, buildMode),
+    stackLine,
     cavemanLine(state, project),
     formatCostLine(state, buildMode),
     godSeed,
@@ -529,6 +675,11 @@ export function buildCompactAddPrompt(
   const securityRule = needsSecurityStep(cleaned, buildMode)
     ? "Security: no bypass Windows security — proper installer, Entra/consent where applicable."
     : "";
+
+  const qualityLine =
+    buildMode === "god" ?
+      "Quality: world-class Phase 1 UX on the core path — beat incumbents on consent + simplicity."
+    : "Quality: best Phase 1 product — match repo patterns, minimal diff, no prompt repeat.";
 
   const prompt = `# ADD TO PROJECT — ${project.name}
 ${header}
@@ -541,10 +692,10 @@ ${phaseBlock ? `\n${phaseBlock}\n` : ""}
 Do:
 ${stepBlock}
 
-Quality: Best product for Phase 1 — match repo patterns. Minimal diff. No prompt repeat.
+${qualityLine}
 ${securityRule}
 Rules: Do not repeat this prompt back. No scope creep beyond Phase 1.
-Reply: ADD COMPLETE — one line what changed`;
+Reply: ADD COMPLETE — one line what changed + how to test`;
 
   return { prompt, stepCount: steps.length };
 }

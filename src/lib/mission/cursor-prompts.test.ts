@@ -107,10 +107,14 @@ describe("cursor-prompts — add to project", () => {
     const voice =
       "It needs to be a complete. Professional Remote desktop into. PC from anywhere in the world. He's gonna have about 8 computers. That he has to promote into. He must be able to transfer files between computers. The app should also.";
     const { prompt } = buildCompactAddPrompt(edgar, voice, state);
-    assert.match(prompt, /Jeff wants: Professional remote desktop/);
+    assert.match(prompt, /Goal \(Phase 1\): Professional remote desktop/);
+    assert.match(prompt, /Acceptance \(Spec Bot confirms/);
+    assert.match(prompt, /MeshCentral, RustDesk, Tailscale/);
+    assert.match(prompt, /Later \(Phase 2 — do NOT build now\)/);
     assert.match(prompt, /Implement Phase 1 — Professional remote desktop/);
     assert.doesNotMatch(prompt, /It needs to be a complete/);
     assert.match(prompt, /Run `dotnet build`/);
+    assert.match(prompt, /Stack: \.NET/);
   });
 
   it("small UI ask uses Builder + Test only", () => {
