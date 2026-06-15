@@ -6,16 +6,14 @@ import type { Project, ProjectFeature } from "@/lib/types";
 import { useMissionControl } from "@/lib/store/context";
 import {
   applyPlanToFeatures,
-  approvePlan,
   generateOrchestrationPlan,
 } from "@/lib/orchestration/plan";
 import { suggestIntegrations } from "@/lib/orchestration/integrations";
 import { featuresFromIntent } from "@/lib/mission/intent";
 import { flattenMissionSteps } from "@/lib/mission/bundle";
-import { persistApprovedBuildPrompt } from "@/lib/mission/command-session";
 import { EasyProjectBrief } from "@/components/easy/EasyProjectBrief";
 import { EasyShipPanel } from "@/components/easy/EasyShipPanel";
-import { CursorBuildPromptPanel } from "@/components/shared/CursorBuildPromptPanel";
+import { EasyOrchestratePanel } from "@/components/easy/EasyOrchestratePanel";
 import { botPhaseLabel } from "@/lib/ui/experience";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +21,6 @@ export function EasyProjectMission({ project }: { project: Project }) {
   const { state, updateProject, addActivity, switchProject } = useMissionControl();
   const [intent, setIntent] = useState(project.orchestration?.scope.pitch ?? "");
   const [msg, setMsg] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"idle" | "planned" | "launched">("idle");
   const nextSectionRef = useRef<HTMLElement>(null);
 
   const live = state.projects.find((p) => p.id === project.id) ?? project;
@@ -70,7 +67,7 @@ export function EasyProjectMission({ project }: { project: Project }) {
     };
   };
 
-  const planMission = () => {
+  const addIntentToScope = () => {
     const planned = buildPlannedProject();
     if (!planned) {
       setMsg("Type what you want first");
@@ -78,33 +75,8 @@ export function EasyProjectMission({ project }: { project: Project }) {
     }
     updateProject(planned);
     switchProject(project.id);
-    setPhase("planned");
-    setMsg("Plan ready — review bots below");
-    addActivity(`Easy Mode: planned mission for ${project.name}`, "project", project.id);
-  };
-
-  const launchMission = async () => {
-    const base = live.orchestration?.plan ? live : buildPlannedProject();
-    if (!base) {
-      setMsg("Type what you want first");
-      return;
-    }
-    if (!live.orchestration?.plan) updateProject(base);
-
-    const approved = approvePlan(base, state.bots);
-    const withPrompt = persistApprovedBuildPrompt(approved, intent, state);
-    const fullPrompt = withPrompt.ops.commandSession?.lastPrompt ?? "";
-    try {
-      await navigator.clipboard.writeText(fullPrompt);
-      updateProject(withPrompt);
-      setPhase("launched");
-      setMsg("Copied! Paste into Cursor agent chat.");
-      addActivity(`Easy Mode: launched mission — ${project.name}`, "routing", project.id);
-    } catch {
-      setMsg("Prompt is in the box below — select all and copy.");
-      updateProject(withPrompt);
-      setPhase("launched");
-    }
+    setMsg("Scope updated — now Generate plan → Approve plan below");
+    addActivity(`Easy Mode: scoped mission for ${project.name}`, "project", project.id);
   };
 
   const markStepDone = (featureId: string, stepPhase: string) => {
@@ -202,20 +174,20 @@ export function EasyProjectMission({ project }: { project: Project }) {
         )}
       </section>
 
-      {/* Plan mission */}
+      {/* Scope from intent */}
       <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-          Plan mission
+          Add to scope
         </p>
         <p className="text-sm text-zinc-500">
-          Turns your sentence into features + assigns Planner, Builder, Tester, Security, etc.
+          Turns your sentence into features — then Generate plan → Approve → copy Cursor prompt below.
         </p>
         <button
           type="button"
-          onClick={planMission}
+          onClick={addIntentToScope}
           className="rounded-full bg-white/[0.08] px-6 py-3 text-sm font-medium text-zinc-100 ring-1 ring-white/10 hover:bg-white/[0.12]"
         >
-          Plan Mission
+          Add to scope from above
         </button>
 
         {botCards.length > 0 && (
@@ -238,34 +210,7 @@ export function EasyProjectMission({ project }: { project: Project }) {
         )}
       </section>
 
-      {/* Launch */}
-      <section className="space-y-4 rounded-2xl border border-teal-500/20 bg-teal-500/5 p-5">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-700">
-          Launch in Cursor
-        </p>
-        <p className="text-sm text-zinc-400">
-          Copy the prompt below → paste in Cursor on your project folder. That is where code gets built.
-        </p>
-
-        {(orch?.plan?.approved || phase === "launched") && (
-          <CursorBuildPromptPanel project={live} state={state} intent={intent} />
-        )}
-
-        {!orch?.plan?.approved && (
-          <button
-            type="button"
-            onClick={() => void launchMission()}
-            disabled={!orch?.plan && !intent.trim()}
-            className="rounded-full bg-teal-500 px-8 py-3 text-sm font-semibold text-black hover:bg-teal-400 disabled:opacity-40"
-          >
-            Plan + show Cursor prompt
-          </button>
-        )}
-
-        {phase === "launched" && (
-          <p className="text-xs text-teal-400">Mission active — check off steps below as agent finishes.</p>
-        )}
-      </section>
+      <EasyOrchestratePanel project={live} intent={intent} />
 
       {/* Step 4 — checklist */}
       {steps.length > 0 && (

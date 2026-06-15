@@ -388,8 +388,18 @@ export function MissionControlProvider({ children }: { children: ReactNode }) {
   }, [state.settings.projectsRoots, state.settings.discoverUnknownFolders, state.projects, addActivity]);
 
   const createProject = useCallback(
-    (input: { name: string; pitch: string; description: string; goals: string[]; platforms: string[] }) => {
-      const project = attachConnections(createProjectShell({ ...input, bots: state.bots }));
+    (input: {
+      name: string;
+      pitch: string;
+      description: string;
+      goals: string[];
+      platforms: string[];
+      parentFolder?: string;
+      targetPath?: string;
+    }) => {
+      const project = attachConnections(
+        createProjectShell({ ...input, bots: state.bots, targetPath: input.targetPath }),
+      );
       dispatch({ type: "ADD_PROJECT", payload: project });
       addActivity(`Created project: ${project.name}`, "project", project.id);
       return project;

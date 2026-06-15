@@ -18,6 +18,14 @@ import {
   type WizardStep,
 } from "@/lib/mission/new-project-wizard";
 import { CopyButton } from "@/components/ui/CopyButton";
+import {
+  ProjectLocationPicker,
+  createProjectFolderOnDisk,
+  type ProjectLocationValue,
+} from "@/components/shared/ProjectLocationPicker";
+import { CursorBuildPrerequisites } from "@/components/shared/CursorBuildPrerequisites";
+import { DEFAULT_PROJECTS_ROOT } from "@/lib/discovery/catalog";
+import { resolveProjectPath } from "@/lib/mission/project-location";
 import { cn, copyToClipboard } from "@/lib/utils";
 
 const PLATFORMS = ["web", "mobile", "desktop", "api"];
@@ -100,6 +108,15 @@ export function EasyNewProjectWizard() {
     platforms: ["web"],
   });
   const [goalsText, setGoalsText] = useState("");
+  const [location, setLocation] = useState<ProjectLocationValue>(() => ({
+    parentFolder: state.settings.projectsRoots[0] ?? DEFAULT_PROJECTS_ROOT,
+    targetPath: "",
+  }));
+
+  const resolvedTargetPath = useMemo(
+    () => resolveProjectPath(location.parentFolder, form.name, location.targetPath || undefined),
+    [location.parentFolder, location.targetPath, form.name],
+  );
 
   const intakeForRec = useMemo(
     (): IntakeInput => ({
@@ -108,8 +125,10 @@ export function EasyNewProjectWizard() {
         .split("\n")
         .map((g) => g.trim())
         .filter(Boolean),
+      parentFolder: location.parentFolder,
+      targetPath: resolvedTargetPath,
     }),
-    [form, goalsText],
+    [form, goalsText, location.parentFolder, resolvedTargetPath],
   );
 
   const liveRec = useMemo(
@@ -178,27 +197,43 @@ export function EasyNewProjectWizard() {
 
   const launchBuild = async () => {
     const intake: IntakeInput = intakeForRec;
+    const targetPath = resolvedTargetPath;
 
     const preview = planDraftProject(draftProject(intake, state.bots), state.bots, buildMode);
-    const launch = buildWizardLaunchPrompt(preview, buildMode, state);
+    const withPath = { ...preview, path: targetPath, pathExists: false };
+    const launch = buildWizardLaunchPrompt(withPath, buildMode, state);
     if (!launch) {
       setMsg("Could not build prompt — check your idea fields");
       return;
     }
 
     const created = createProject(intake);
-    updateProject({ ...launch.project, id: created.id, slug: created.slug, connections: created.connections, costProfile: created.costProfile });
+    const folderResult = await createProjectFolderOnDisk(targetPath);
+
+    updateProject({
+      ...launch.project,
+      id: created.id,
+      slug: created.slug,
+      path: targetPath,
+      pathExists: folderResult.ok,
+      connections: created.connections,
+      costProfile: created.costProfile,
+    });
     openWorkspace(created.id);
     setCreatedId(created.id);
     setPrompt(launch.prompt);
 
     try {
       await copyToClipboard(launch.prompt);
-      setMsg("Copied! Paste into Cursor agent chat.");
+      setMsg(
+        folderResult.ok
+          ? `Folder ready at ${targetPath} — prompt copied. Paste in Cursor.`
+          : `${folderResult.message} — prompt copied.`,
+      );
     } catch {
-      setMsg("Prompt ready — tap Copy below");
+      setMsg(folderResult.ok ? `Folder at ${targetPath} — select prompt below and copy` : "Prompt ready — tap Copy below");
     }
-    addActivity(`New app wizard: ${created.name} (${buildMode})`, "project", created.id);
+    addActivity(`New app wizard: ${created.name} at ${targetPath} (${buildMode})`, "project", created.id);
   };
 
   return (
@@ -283,6 +318,18 @@ export function EasyNewProjectWizard() {
                 ))}
               </div>
             </div>
+
+            {form.name.trim().length > 0 && (
+              <ProjectLocationPicker
+                projectName={form.name}
+                parentOptions={state.settings.projectsRoots}
+                value={{
+                  parentFolder: location.parentFolder,
+                  targetPath: location.targetPath || resolvedTargetPath,
+                }}
+                onChange={setLocation}
+              />
+            )}
 
             {liveRec && form.platforms.length > 0 && (
               <div className="space-y-3 rounded-xl border border-teal-500/20 bg-teal-500/5 p-4">
@@ -485,8 +532,22 @@ export function EasyNewProjectWizard() {
               <strong className="text-zinc-200">
                 {BUILD_MODES.find((m) => m.id === buildMode)?.label}
               </strong>
-              . One power prompt — paste in Cursor. Bots run in order. Report STEP N DONE each step.
+              . Creates folder at{" "}
+              <span className="font-mono text-teal-600/90">{resolvedTargetPath}</span> — then copy
+              prompt into Cursor.
             </p>
+            {!createdId && form.name.trim() && (
+              <ProjectLocationPicker
+                projectName={form.name}
+                parentOptions={state.settings.projectsRoots}
+                value={{
+                  parentFolder: location.parentFolder,
+                  targetPath: location.targetPath || resolvedTargetPath,
+                }}
+                onChange={setLocation}
+                compact
+              />
+            )}
             {!createdId ? (
               <button
                 type="button"
@@ -497,7 +558,20 @@ export function EasyNewProjectWizard() {
               </button>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-emerald-300">Project created. Prompt ready.</p>
+                <p className="text-sm text-emerald-300">
+                  Project created at{" "}
+                  <span className="font-mono text-emerald-200/80">{resolvedTargetPath}</span>
+                </p>
+                {planned && (
+                  <CursorBuildPrerequisites
+                    project={{
+                      ...planned,
+                      id: createdId ?? planned.id,
+                      path: resolvedTargetPath,
+                      pathExists: true,
+                    }}
+                  />
+                )}
                 <CopyButton text={prompt} label="Copy prompt again" />
                 <Link
                   href={`/easy/projects/${createdId}`}

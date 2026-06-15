@@ -7,6 +7,7 @@ import { buildFromIntent, buildAddOnFromIntent, routeHint, suggestBuilderEnhance
 import { onBuilderBuild } from "@/lib/mission/guided-journey";
 import { createSpeechRecognitionAdapter } from "@/lib/voice/recognition";
 import { CopyButton } from "@/components/ui/CopyButton";
+import { CursorBuildPrerequisites } from "@/components/shared/CursorBuildPrerequisites";
 import { cn, copyToClipboard } from "@/lib/utils";
 
 const QUICK_CHIPS: { label: string; intent: string; route: BuilderRoute }[] = [
@@ -348,7 +349,11 @@ export function EasyBuilderHub() {
         )}
 
         {prompt && (
-          <div ref={promptPanelRef} className="mt-4 space-y-2 rounded-xl border border-teal-500/20 bg-black/40 p-4">
+          <div ref={promptPanelRef} className="mt-4 space-y-2 rounded-xl border-2 border-teal-500/40 bg-black/50 p-4 shadow-lg shadow-teal-500/10">
+            <p className="text-xs font-semibold text-teal-200">
+              ↓ Your Cursor command — scroll here after Build it. Jeff OS does not compile code in the browser.
+            </p>
+            {project && <CursorBuildPrerequisites project={project} />}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 {route && (

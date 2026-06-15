@@ -73,6 +73,7 @@ export function createProjectShell(input: {
   goals: string[];
   platforms: string[];
   bots: BotDefinition[];
+  targetPath?: string;
 }): Project {
   const now = new Date().toISOString();
   const slug = input.name
@@ -102,6 +103,7 @@ export function createProjectShell(input: {
     jeffMode: "caveman",
     lastUpdated: now,
     discoverySource: "manual",
+    path: input.targetPath?.trim() || undefined,
     pathExists: false,
     discoveredAt: now,
     ops: {

@@ -7,6 +7,10 @@ export interface IntakeInput {
   description: string;
   goals: string[];
   platforms: string[];
+  /** Parent folder on disk, e.g. C:\Projects */
+  parentFolder?: string;
+  /** Full path override, e.g. C:\Projects\My App Name */
+  targetPath?: string;
 }
 
 export interface TimelinePhase {

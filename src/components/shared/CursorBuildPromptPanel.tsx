@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { buildCommandMissionBundle } from "@/lib/mission/command-session";
 import { flattenMissionSteps } from "@/lib/mission/bundle";
 import { CopyButton } from "@/components/ui/CopyButton";
+import { CursorBuildPrerequisites } from "@/components/shared/CursorBuildPrerequisites";
 import type { MissionControlState, Project } from "@/lib/types";
 
 export function CursorBuildPromptPanel({
@@ -34,8 +35,9 @@ export function CursorBuildPromptPanel({
 
   const stepCount = flattenMissionSteps(project).length;
   const approved = project.orchestration?.plan?.approved;
+  const hasSavedPrompt = Boolean(project.ops.commandSession?.lastPrompt?.trim());
 
-  if (!approved && stepCount === 0) {
+  if (!approved && !hasSavedPrompt && stepCount === 0) {
     return (
       <p className="text-sm text-zinc-500">
         Generate plan → Approve plan — your full Cursor prompt appears here.
@@ -45,6 +47,7 @@ export function CursorBuildPromptPanel({
 
   return (
     <div className="space-y-3">
+      <CursorBuildPrerequisites project={project} />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-teal-200">{title}</p>

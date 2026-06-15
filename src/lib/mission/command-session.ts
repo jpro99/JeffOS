@@ -6,6 +6,7 @@ import {
   generateOrchestrationPlan,
 } from "@/lib/orchestration/plan";
 import { buildMissionBundle, flattenMissionSteps } from "@/lib/mission/bundle";
+import { greenfieldScaffoldBlock } from "@/lib/mission/build-prerequisites";
 import { featuresFromIntent, isVisionIntent, summarizeIntent } from "@/lib/mission/intent";
 import { resolveGodBotRelativePath } from "@/lib/command-center/paths";
 import type { MissionControlState, Project } from "@/lib/types";
@@ -92,7 +93,7 @@ COMMAND SESSION COMPLETE — ${intent.trim().slice(0, 80)}
 Jeff marks progress in Jeff OS → Rescan + verify build.
 `;
 
-  return header + core + footer;
+  return greenfieldScaffoldBlock(project) + header + core + footer;
 }
 
 /** Save approved plan → full Cursor prompt on project (localStorage) */

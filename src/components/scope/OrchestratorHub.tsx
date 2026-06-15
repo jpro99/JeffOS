@@ -29,7 +29,7 @@ import {
 } from "@/lib/orchestration/stats";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { cn } from "@/lib/utils";
+import { cn, copyToClipboard } from "@/lib/utils";
 import { FeatureDetailDrawer } from "@/components/scope/FeatureDetailDrawer";
 import { TryAndRunScorePanel } from "@/components/connections/TryAndRunScorePanel";
 
@@ -124,14 +124,25 @@ export function OrchestratorHub({ project }: { project: Project }) {
     addActivity("Generated orchestration plan", "routing", project.id);
   };
 
-  const onApprove = () => {
+  const onApprove = async () => {
     if (!orch.plan) return;
     const intent =
       orch.scope.pitch || live.description || live.goals.join("; ") || `Build ${live.name}`;
     const approved = approvePlan(live, state.bots);
-    save(persistApprovedBuildPrompt(approved, intent, state));
+    const withPrompt = persistApprovedBuildPrompt(approved, intent, state);
+    save(withPrompt);
     addActivity("Orchestration plan approved — Cursor prompt ready", "project", project.id);
-    setLaunchMsg("Prompt ready below — copy the whole box → paste in Cursor.");
+
+    const text = withPrompt.ops.commandSession?.lastPrompt ?? "";
+    const ok = text ? await copyToClipboard(text) : false;
+    setLaunchMsg(
+      ok
+        ? "Copied! Paste in Cursor agent chat — full prompt in box below."
+        : "Prompt ready below — select all and copy.",
+    );
+    requestAnimationFrame(() => {
+      document.getElementById("cursor-build-prompt-classic")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const onRerun = () => {
@@ -167,6 +178,7 @@ export function OrchestratorHub({ project }: { project: Project }) {
       </div>
 
       {orch.plan?.approved && (
+        <div id="cursor-build-prompt-classic">
         <Card className="space-y-3 border-teal-500/30 bg-teal-500/[0.04]">
           <CardTitle>Your Cursor prompt — copy &amp; paste</CardTitle>
           <p className="text-xs text-zinc-500">
@@ -176,6 +188,7 @@ export function OrchestratorHub({ project }: { project: Project }) {
           <CursorBuildPromptPanel project={live} state={state} />
           {launchMsg && <p className="text-xs text-teal-400">{launchMsg}</p>}
         </Card>
+        </div>
       )}
 
       {/* Scope */}
