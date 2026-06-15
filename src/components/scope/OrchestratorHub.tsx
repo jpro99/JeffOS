@@ -15,6 +15,7 @@ import { createFeature } from "@/lib/orchestration/defaults";
 import { suggestIntegrations, markIntegrationConnected } from "@/lib/orchestration/integrations";
 import { persistApprovedBuildPrompt } from "@/lib/mission/command-session";
 import { CursorBuildPromptPanel } from "@/components/shared/CursorBuildPromptPanel";
+import { ProjectFolderBanner } from "@/components/shared/ProjectFolderBanner";
 import {
   approvePlan,
   generateOrchestrationPlan,
@@ -176,6 +177,8 @@ export function OrchestratorHub({ project }: { project: Project }) {
           ok={stats.planApproved}
         />
       </div>
+
+      <ProjectFolderBanner project={live} />
 
       {orch.plan?.approved && (
         <div id="cursor-build-prompt-classic">
