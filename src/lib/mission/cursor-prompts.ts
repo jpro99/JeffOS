@@ -1,7 +1,8 @@
 import { resolveGodBotRelativePath } from "@/lib/command-center/doc-paths";
 import { suggestProjectFolder } from "@/lib/mission/build-prerequisites";
 import type { PasteAnalysis } from "@/lib/mission/paste-fix";
-import { summarizeIntent } from "@/lib/mission/intent";
+import { isSingleTaskIntent, isVisionIntent, summarizeIntent } from "@/lib/mission/intent";
+import { recommendBuildMode, type BuildMode } from "@/lib/mission/suggest-project-bots";
 import { DEFAULT_REPO_PROFILE } from "@/lib/project-scan/repo-profile";
 import type { BotDefinition, BotTypeId, InterfaceId, MissionControlState, Project } from "@/lib/types";
 
@@ -12,7 +13,133 @@ function repoPath(project: Project): string {
 }
 
 function buildCommand(project: Project): string {
-  return project.ops.repoProfile?.buildCommand ?? DEFAULT_REPO_PROFILE.buildCommand;
+  return resolveVerifyCommand(project);
+}
+
+function resolveVerifyCommand(project: Project): string {
+  if (project.ops.repoProfile?.buildCommand) return project.ops.repoProfile.buildCommand;
+  const stack = project.stack.join(" ").toLowerCase();
+  if (stack.includes(".net") || stack.includes("dotnet")) {
+    return "dotnet build (see God Bot doc for solution path)";
+  }
+  return DEFAULT_REPO_PROFILE.buildCommand;
+}
+
+function resolveBuildMode(project: Project): BuildMode {
+  return project.orchestration?.botSuggestion?.buildMode ?? recommendBuildMode(project);
+}
+
+/** Strip voice filler and repeated "Jeff wants:" prefixes. */
+export function cleanAddIntent(raw: string): string {
+  let t = raw.trim().replace(/\s+/g, " ");
+  while (/^jeff wants:\s*/i.test(t)) {
+    t = t.replace(/^jeff wants:\s*/i, "");
+  }
+  return dedupeSentences(t).trim();
+}
+
+function dedupeSentences(text: string): string {
+  const parts = text.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean);
+  if (parts.length <= 1) return text;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const p of parts) {
+    const key = p.toLowerCase().replace(/\W+/g, " ").slice(0, 72);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(p);
+  }
+  return out.join(" ");
+}
+
+/** Caveman brief for the prompt header — bullets when voice ramble is long. */
+export function formatIntentBrief(cleaned: string): string {
+  if (!cleaned) return "";
+
+  const sentences = dedupeSentences(cleaned)
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 12);
+
+  if (sentences.length >= 3 || (cleaned.length > 200 && sentences.length >= 2)) {
+    return sentences
+      .slice(0, 7)
+      .map((s) => `- ${s.replace(/[.!?]+\s*$/, "")}`)
+      .join("\n");
+  }
+
+  if (cleaned.length <= 420) return cleaned;
+
+  if (sentences.length >= 2) {
+    return sentences
+      .slice(0, 7)
+      .map((s) => `- ${s.replace(/[.!?]+\s*$/, "")}`)
+      .join("\n");
+  }
+
+  return `${cleaned.slice(0, 400).trim()}…`;
+}
+
+function formatReadList(project: Project, godBotRel: string): string {
+  const extras: string[] = [];
+  const key = `${project.slug} ${project.name}`.toLowerCase();
+  if (/edgar/.test(key)) extras.push("START-HERE-EDGAR.md");
+  if (/bankruptcy/.test(key)) extras.push("repo README + God Bot");
+  return extras.length ? `${godBotRel} · ${extras.join(" · ")}` : godBotRel;
+}
+
+function formatCostLine(state: MissionControlState, buildMode: BuildMode): string {
+  if (state.settings.costSaveMode && buildMode === "standard") {
+    return "Cost: cheap-fast where safe — no new deps unless required";
+  }
+  if (buildMode === "god") {
+    return "Cost: best product — Phase 1 only; world-class UX on core path";
+  }
+  if (buildMode === "careful") {
+    return "Cost: careful — security + correctness over speed";
+  }
+  return "Cost: balanced — minimal diff, best UX for the ask";
+}
+
+function formatGodModeSeed(project: Project): string {
+  const idea = project.ops.godModeIdeas[0];
+  if (!idea?.insight.trim()) return "";
+  return `God Mode (after Phase 1 — optional): ${idea.insight.trim().slice(0, 180)}`;
+}
+
+function isBigAddIntent(cleaned: string): boolean {
+  if (isVisionIntent(cleaned)) return true;
+  if (cleaned.length > 320) return true;
+  return /\b(remote desktop|rdp|vnc|fleet|8 pc|all pc|platform|agent install|push update|every computer|world|enterprise)\b/i.test(
+    cleaned,
+  );
+}
+
+function needsSecurityStep(cleaned: string, buildMode: BuildMode): boolean {
+  if (buildMode === "careful") return true;
+  return /\b(remote|agent|install|auth|security|legal|entra|admin|elevated|powershell admin|uac|hipaa|payment)\b/i.test(
+    cleaned,
+  );
+}
+
+function formatPhaseBlock(cleaned: string): string | null {
+  if (!isBigAddIntent(cleaned)) return null;
+  const t = cleaned.toLowerCase();
+  let mvp = "Smallest shippable slice — 3 acceptance bullets, then code";
+  if (/\bremote|desktop|rdp|screen share|vnc\b/.test(t)) {
+    mvp =
+      "Spike one PC: invite → one Connect button → clear on-screen banner; compare MeshCentral/RustDesk/Tailscale before coding";
+  }
+  if (/\b8 pc|fleet|all pc|push update|every computer\b/.test(t)) {
+    mvp = "Phase 1: one PC end-to-end; fleet push + multi-PC is Phase 2";
+  }
+  return `Phase 1 ONLY (this session):
+- ${mvp}
+Out of scope now: full fleet, polish, v2 — ship Phase 1 first`;
+}
+
+function botName(state: MissionControlState, project: Project, type: BotTypeId, fallback: string): string {
+  return botByType(state.bots, type, project.workerBotIds)?.name ?? fallback;
 }
 
 function cavemanLine(state: MissionControlState, project: Project): string {
@@ -194,66 +321,165 @@ ${logBlock ? `Build log:\n\`\`\`\n${logBlock}\n\`\`\`\n` : ""}${formatRunCommand
 
 type AddStep = { n: number; who: string; task: string };
 
-function addStepsForIntent(intent: string, verify: string): AddStep[] {
-  const t = intent.trim();
-  const isFix = /\b(fix|bug|error|broken|crash|repair|patch)\b/i.test(t);
-  const isSmall =
-    t.length < 220 ||
-    /\b(button|click|copy|paste|panel|label|text|show|hide|display|ui|ux|screen|wording)\b/i.test(t);
+function formatAddBotsBlock(
+  project: Project,
+  state: MissionControlState,
+  godBotRel: string,
+  steps: AddStep[],
+  buildMode: BuildMode,
+): string {
+  const god = state.bots.find((b) => b.id === project.assignedGodBotId);
+  const workerIds =
+    project.workerBotIds.length > 0 ?
+      project.workerBotIds
+    : (project.orchestration?.botSuggestion?.recommendedWorkerBotIds ?? []);
+  const workerNames = workerIds
+    .map((id) => state.bots.find((b) => b.id === id)?.name)
+    .filter((n): n is string => Boolean(n));
+
+  const lines = [
+    "Bots (Jeff OS Settings — act as these personas, follow Do order):",
+    `- God: ${god?.name ?? project.assignedGodBotId} — read ${godBotRel} before code`,
+    ...steps.map((s) => `- ${s.who} — step ${s.n} below`),
+    `- Tool: ${interfaceLabel(project.preferredInterface)} · Model: ${project.preferredModelClass} · Mode: ${buildMode}`,
+  ];
+
+  if (workerNames.length > 0) lines.push(`- Workers on project: ${workerNames.join(", ")}`);
+  if (project.activeBotStrategy?.trim()) {
+    lines.push(`- Strategy: ${project.activeBotStrategy.trim().slice(0, 160)}`);
+  }
+  return lines.join("\n");
+}
+
+function addStepsForIntent(
+  project: Project,
+  state: MissionControlState,
+  intentBrief: string,
+  verify: string,
+  buildMode: BuildMode,
+): AddStep[] {
+  const oneLine = intentBrief.replace(/\n- /g, "; ").replace(/\s+/g, " ").trim();
+  const summary = oneLine.length > 140 ? summarizeIntent(oneLine) : oneLine;
+  const isSmall = isSingleTaskIntent(oneLine) || oneLine.length < 200;
+  const isBig = isBigAddIntent(oneLine);
+  const careful = buildMode === "careful" || buildMode === "god" || isBig;
+
+  const spec = botName(state, project, "spec-bot", "Spec Bot");
+  const architect = botName(state, project, "architect-bot", "Architect Bot");
+  const security = botName(state, project, "security-risk-bot", "Security Bot");
+  const builder = botName(state, project, "builder-bot", "Builder Bot");
+  const test = botName(state, project, "test-bot", "Test Bot");
+  const debug = botName(state, project, "debug-bot", "Debug Bot");
+
+  const isFix = /\b(fix|bug|error|broken|crash|repair|patch)\b/i.test(oneLine);
+
+  if (isSmall && !careful && !isFix) {
+    return [
+      { n: 1, who: builder, task: oneLine },
+      { n: 2, who: test, task: `Run \`${verify}\` — must pass` },
+    ];
+  }
 
   if (isFix && isSmall) {
     return [
-      { n: 1, who: "Debug", task: "Find root cause — one line" },
-      { n: 2, who: "Builder", task: t },
-      { n: 3, who: "Test", task: `Run \`${verify}\` — must pass` },
+      { n: 1, who: debug, task: "Root cause — one line" },
+      { n: 2, who: builder, task: oneLine },
+      { n: 3, who: test, task: `Run \`${verify}\` — must pass` },
     ];
   }
 
-  if (isSmall) {
-    return [
-      { n: 1, who: "Builder", task: t },
-      { n: 2, who: "Test", task: `Run \`${verify}\` — must pass` },
-    ];
-  }
-
-  return [
-    { n: 1, who: "Spec", task: "3 bullet acceptance criteria — no essay" },
-    { n: 2, who: "Builder", task: t },
-    { n: 3, who: "Test", task: `Run \`${verify}\` — must pass` },
+  const steps: AddStep[] = [
+    {
+      n: 1,
+      who: spec,
+      task: isBig ?
+        "3 acceptance bullets — Phase 1 ONLY, caveman"
+      : "3 acceptance bullets — no essay",
+    },
   ];
+  let n = 2;
+
+  if (isBig || buildMode === "god") {
+    steps.push({
+      n: n++,
+      who: architect,
+      task: "Fit existing repo + stack — minimal diff, no greenfield rewrite",
+    });
+  }
+
+  if (needsSecurityStep(oneLine, buildMode)) {
+    steps.push({
+      n: n++,
+      who: security,
+      task: "Signed install + user consent — no UAC/AV bypass, no elevation hacks",
+    });
+  }
+
+  steps.push({
+    n: n++,
+    who: builder,
+    task: `Implement Phase 1 — ${summary}`,
+  });
+  steps.push({ n: n++, who: test, task: `Run \`${verify}\` — must pass` });
+
+  return steps;
 }
 
-/** Add to project — new work, not error repair. Minimal bots only. */
+/** Add to project — new work with Settings bots, cleaned intent, phased scope. */
 export function buildCompactAddPrompt(
   project: Project,
   intent: string,
   state: MissionControlState,
 ): { prompt: string; stepCount: number } {
-  const trimmed = intent.trim();
+  const cleaned = cleanAddIntent(intent);
+  const brief = formatIntentBrief(cleaned);
   const repo = repoPath(project);
-  const verify = buildCommand(project);
+  const verify = resolveVerifyCommand(project);
   const godBot = resolveGodBotRelativePath(project);
-  const steps = addStepsForIntent(trimmed, verify);
-
+  const readList = formatReadList(project, godBot);
+  const buildMode = resolveBuildMode(project);
+  const steps = addStepsForIntent(project, state, brief, verify, buildMode);
   const stepBlock = steps.map((s) => `${s.n}. ${s.who} — ${s.task}`).join("\n");
+  const phaseBlock = formatPhaseBlock(cleaned);
+  const godSeed = formatGodModeSeed(project);
+
+  const header =
+    brief.includes("\n- ") ?
+      `Jeff wants:\n${brief}`
+    : `Jeff wants: ${brief}`;
+
+  const meta = [
+    formatAddBotsBlock(project, state, godBot, steps, buildMode),
+    cavemanLine(state, project),
+    formatCostLine(state, buildMode),
+    godSeed,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const securityRule = needsSecurityStep(cleaned, buildMode)
+    ? "Security: no bypass Windows security — proper installer, Entra/consent where applicable."
+    : "";
 
   const prompt = `# ADD TO PROJECT — ${project.name}
-Jeff wants: ${trimmed}
+${header}
 
 Repo: ${repo}
-Read: ${godBot}
+Read: ${readList}
 Verify: ${verify}
-${cavemanLine(state, project)}
-
+${meta}
+${phaseBlock ? `\n${phaseBlock}\n` : ""}
 Do:
 ${stepBlock}
 
-Rules: minimal diff. Match repo. Do not repeat this prompt back.
+Quality: Best product for Phase 1 — match repo patterns. Minimal diff. No prompt repeat.
+${securityRule}
+Rules: Do not repeat this prompt back. No scope creep beyond Phase 1.
 Reply: ADD COMPLETE — one line what changed`;
 
   return { prompt, stepCount: steps.length };
 }
 
 export function addPromptSummary(intent: string): string {
-  return summarizeIntent(intent);
+  return summarizeIntent(cleanAddIntent(intent));
 }
