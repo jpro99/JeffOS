@@ -73,7 +73,10 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
   const [scanMode, setScanMode] = useState<"quick" | "verify">("quick");
   const [pasteSeed, setPasteSeed] = useState("");
   const projectRef = useRef(project);
-  projectRef.current = project;
+
+  useEffect(() => {
+    projectRef.current = project;
+  }, [project]);
 
   const scrollToFix = () => {
     setFixOpen(true);
@@ -146,7 +149,10 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
   );
 
   const runScanRef = useRef(runScan);
-  runScanRef.current = runScan;
+
+  useEffect(() => {
+    runScanRef.current = runScan;
+  }, [runScan]);
 
   useEffect(() => {
     void runScanRef.current(false);
@@ -209,7 +215,7 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
             className="rounded-lg border border-white/[0.08] px-3 py-1 text-xs text-zinc-500 hover:text-zinc-300"
             title="Scan folder + run npm build to check if errors are fixed"
           >
-            Rescan + verify build
+            Update / recheck build
           </button>
         </div>
       </div>
@@ -296,7 +302,15 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
         ))}
       </div>
 
-      <PasteFixPanel project={project} initialPaste={pasteSeed || undefined} />
+      <PasteFixPanel
+        key={pasteSeed || "manual-paste-fix"}
+        project={project}
+        initialPaste={pasteSeed || undefined}
+        onRecheck={() => runScan(true)}
+        rechecking={loading && scanMode === "verify"}
+        verifyReport={verifyReport}
+        nextBuildItems={brief.needsBuild}
+      />
 
       {(fixOpen ||
         missionComplete ||

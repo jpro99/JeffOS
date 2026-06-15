@@ -182,11 +182,15 @@ export function EasyErrorFixPanel({
       setVerifyReport(data.report);
 
       if (data.report.canAdvance) {
-        setMsg("All clear — build passed, no open errors");
+        setMsg("All clear — build passed. Build next.");
         addActivity(`Fix verify passed: ${project.name}`, "project", project.id);
         requestAnimationFrame(() => onVerifiedComplete?.());
       } else {
-        setMsg(data.report.summary);
+        const nextProblem =
+          data.report.stillOpenErrors[0]?.title ||
+          data.report.stillOpenBlockers[0] ||
+          data.report.summary;
+        setMsg(`Next problem: ${nextProblem}`);
         addActivity(`Fix verify still blocked: ${project.name}`, "project", project.id);
       }
     } catch {
@@ -213,7 +217,7 @@ export function EasyErrorFixPanel({
     >
       {isComplete ? (
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-4 text-center">
-          <p className="text-lg font-semibold text-emerald-300">Fixed — everything working</p>
+          <p className="text-lg font-semibold text-emerald-300">Fixed — build next</p>
           <p className="mt-1 text-sm text-emerald-600/80">
             Errors cleared in Jeff OS. Run app + tests locally to double-check.
           </p>
@@ -225,7 +229,7 @@ export function EasyErrorFixPanel({
               Fix errors before shipping
             </p>
             <p className="mt-1 text-sm text-zinc-400">
-              ✓ check steps → Build prompt → paste in Cursor → Recheck project (runs build)
+              ✓ check steps → Build prompt → paste in Cursor → Update / recheck project
             </p>
           </div>
 
@@ -384,7 +388,7 @@ export function EasyErrorFixPanel({
                 disabled={rechecking}
                 className="w-full rounded-full bg-emerald-500 py-3.5 text-sm font-semibold text-black hover:bg-emerald-400 disabled:opacity-50"
               >
-                {rechecking ? "Rechecking build…" : "Recheck project"}
+                {rechecking ? "Checking updates…" : "Update / recheck project"}
               </button>
             </div>
           )}
@@ -404,7 +408,7 @@ export function EasyErrorFixPanel({
                   verifyReport.canAdvance ? "text-emerald-300" : "text-amber-200",
                 )}
               >
-                {verifyReport.canAdvance ? "Fixed — build passed" : "Still blocked — more to fix"}
+                {verifyReport.canAdvance ? "Fixed — build passed. Build next." : "Still blocked — next problem"}
               </p>
               <p className="text-xs text-zinc-400">{verifyReport.summary}</p>
               <div className="flex flex-wrap gap-2 text-[10px] uppercase">
@@ -470,7 +474,7 @@ export function EasyErrorFixPanel({
                   onClick={replanFix}
                   className="w-full rounded-full border border-white/10 bg-white/[0.05] py-2.5 text-sm text-zinc-200 hover:border-teal-500/30"
                 >
-                  Plan fix robots again
+                  Fix next problem
                 </button>
               )}
             </div>
@@ -483,7 +487,7 @@ export function EasyErrorFixPanel({
               disabled={rechecking}
               className="w-full rounded-full bg-emerald-500 py-3 text-sm font-semibold text-black hover:bg-emerald-400 disabled:opacity-50"
             >
-              Recheck project
+              Update / recheck project
             </button>
           )}
         </>
