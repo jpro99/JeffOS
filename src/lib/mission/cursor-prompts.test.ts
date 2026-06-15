@@ -112,9 +112,12 @@ describe("cursor-prompts — add to project", () => {
     assert.match(prompt, /MeshCentral, RustDesk, Tailscale/);
     assert.match(prompt, /Later \(Phase 2 — do NOT build now\)/);
     assert.match(prompt, /Implement Phase 1 — Professional remote desktop/);
+    assert.match(prompt, /Agent ↔ server contract/);
+    assert.match(prompt, /Playbook:/);
+    assert.match(prompt, /Run-Edgar-Dev\.ps1/);
+    assert.match(prompt, /Verify: dotnet build AllInOneEdgar\.sln/);
+    assert.match(prompt, /Run `dotnet build AllInOneEdgar\.sln`/);
     assert.doesNotMatch(prompt, /It needs to be a complete/);
-    assert.match(prompt, /Run `dotnet build`/);
-    assert.match(prompt, /Stack: \.NET/);
   });
 
   it("small UI ask uses Builder + Test only", () => {

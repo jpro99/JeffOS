@@ -2,6 +2,15 @@ import { resolveGodBotRelativePath } from "@/lib/command-center/doc-paths";
 import { suggestProjectFolder } from "@/lib/mission/build-prerequisites";
 import type { PasteAnalysis } from "@/lib/mission/paste-fix";
 import { isSingleTaskIntent, isVisionIntent, summarizeIntent } from "@/lib/mission/intent";
+import {
+  applyCostModeToProfile,
+  applyProjectPlaybook,
+  formatGodModeBlock,
+  formatPlaybookBootBlock,
+  playbookExtraRead,
+  playbookVerifyOverride,
+  type AddIntentProfile,
+} from "@/lib/mission/add-prompt-playbooks";
 import { recommendBuildMode, type BuildMode } from "@/lib/mission/suggest-project-bots";
 import { DEFAULT_REPO_PROFILE } from "@/lib/project-scan/repo-profile";
 import type { BotDefinition, BotTypeId, InterfaceId, MissionControlState, Project } from "@/lib/types";
@@ -17,10 +26,15 @@ function buildCommand(project: Project): string {
 }
 
 function resolveVerifyCommand(project: Project): string {
+  const playbookCmd = playbookVerifyOverride(project);
+  if (playbookCmd) return `${playbookCmd} (see God Bot doc)`;
   if (project.ops.repoProfile?.buildCommand) return project.ops.repoProfile.buildCommand;
   const stack = project.stack.join(" ").toLowerCase();
   if (stack.includes(".net") || stack.includes("dotnet")) {
     return "dotnet build (see God Bot doc for solution path)";
+  }
+  if (stack.includes("flutter")) {
+    return "flutter analyze (see God Bot doc)";
   }
   return DEFAULT_REPO_PROFILE.buildCommand;
 }
@@ -109,16 +123,7 @@ function verifyLabel(project: Project): string {
   return resolveVerifyCommand(project).replace(/\s*\(.*$/, "").trim();
 }
 
-type AddIntentProfile = {
-  domain: "remote-desktop" | "auth" | "deploy" | "ui" | "generic";
-  phase1Goal: string;
-  phase2Later: string | null;
-  acceptance: string[];
-  architectTask: string;
-  specTask: string;
-  builderHint: string;
-  outOfScope: string[];
-};
+type AddStep = { n: number; who: string; task: string };
 
 function stripPhase2Suffix(goal: string): string {
   return goal.replace(/\s*\(Phase 2:.*\)$/i, "").trim();
@@ -187,6 +192,50 @@ function detectAddIntentProfile(cleaned: string, project: Project): AddIntentPro
       specTask: "3 acceptance bullets — deploy Phase 1 only",
       builderHint: "Scripts/docs + minimal config diff — ship runnable path first",
       outOfScope: ["Full observability stack", "Blue-green", "Multi-region"],
+    };
+  }
+
+  const stackText = project.stack.join(" ").toLowerCase();
+  if (
+    /\b(flutter|dart|ios app|android app|mobile app)\b/.test(t) ||
+    stackText.includes("flutter")
+  ) {
+    const big = isBigAddIntent(cleaned);
+    return {
+      domain: "mobile",
+      phase1Goal: stripPhase2Suffix(goal),
+      phase2Later: big ? "Full product polish, stores, analytics" : null,
+      acceptance: [
+        "Core loop or screen change matches Goal — one platform path first",
+        "Matches existing Flutter folder structure and state patterns",
+        `${verify} passes`,
+      ],
+      architectTask: "Flutter scaffold — Spec clarity before large widget trees",
+      specTask: big ? "3 bullets: user action → screen → done (Phase 1)" : "1–3 acceptance bullets",
+      builderHint: "One screen or flow — no app-wide refactor",
+      outOfScope: big ? ["Both iOS+Android store ship", "Backend rewrite"] : [],
+    };
+  }
+
+  if (
+    /\b(legal|attorney|court|chapter|bankruptcy|matter|hearing|plaintiff|defendant|hipaa)\b/.test(t) ||
+    /bankruptcy|demand-generator|legal/.test(project.slug)
+  ) {
+    const big = isBigAddIntent(cleaned);
+    return {
+      domain: "legal",
+      phase1Goal: stripPhase2Suffix(goal),
+      phase2Later: big ? "Multi-jurisdiction, full audit UI" : null,
+      acceptance: [
+        "No PII/secrets in logs or client bundles",
+        "Auth/RLS paths unchanged unless migration documented",
+        "Careful mode — Security Worker sign-off on data paths",
+        `${verify} passes`,
+      ],
+      architectTask: "Legal SaaS patterns — RLS, matter scoping, webhook safety",
+      specTask: "3 acceptance bullets — legal Phase 1 only",
+      builderHint: "Minimal diff — never run production deploy during dev",
+      outOfScope: ["Production deploy during dev", "RBAC redesign", "New payment rail"],
     };
   }
 
@@ -299,11 +348,15 @@ export function formatIntentBrief(cleaned: string): string {
 }
 
 function formatReadList(project: Project, godBotRel: string): string {
-  const extras: string[] = [];
-  const key = `${project.slug} ${project.name}`.toLowerCase();
-  if (/edgar/.test(key)) extras.push("START-HERE-EDGAR.md");
-  if (/bankruptcy/.test(key)) extras.push("repo README + God Bot");
-  return extras.length ? `${godBotRel} · ${extras.join(" · ")}` : godBotRel;
+  const fromPlaybook = playbookExtraRead(project);
+  const extras = [...fromPlaybook];
+  if (extras.length === 0) {
+    const key = `${project.slug} ${project.name}`.toLowerCase();
+    if (/edgar/.test(key)) extras.push("START-HERE-EDGAR.md");
+    if (/bankruptcy/.test(key)) extras.push("repo README + God Bot");
+  }
+  const parts = [godBotRel, ...extras];
+  return [...new Set(parts)].join(" · ");
 }
 
 function formatCostLine(state: MissionControlState, buildMode: BuildMode): string {
@@ -317,12 +370,6 @@ function formatCostLine(state: MissionControlState, buildMode: BuildMode): strin
     return "Cost: careful — security + correctness over speed";
   }
   return "Cost: balanced — minimal diff, best UX for the ask";
-}
-
-function formatGodModeSeed(project: Project): string {
-  const idea = project.ops.godModeIdeas[0];
-  if (!idea?.insight.trim()) return "";
-  return `God Mode (after Phase 1 — optional): ${idea.insight.trim().slice(0, 180)}`;
 }
 
 function isBigAddIntent(cleaned: string): boolean {
@@ -540,8 +587,6 @@ ${formatDoSteps(verify, analysis)}
 ${logBlock ? `Build log:\n\`\`\`\n${logBlock}\n\`\`\`\n` : ""}${formatRunCommands(runCommands, analysis)}Reply: FIX DONE — one line what you fixed`;
 }
 
-type AddStep = { n: number; who: string; task: string };
-
 function formatAddBotsBlock(
   project: Project,
   state: MissionControlState,
@@ -648,23 +693,27 @@ export function buildCompactAddPrompt(
 ): { prompt: string; stepCount: number } {
   const cleaned = cleanAddIntent(intent);
   const brief = formatIntentBrief(cleaned);
-  const profile = detectAddIntentProfile(cleaned, project);
   const isBig = isBigAddIntent(cleaned);
+  const buildMode = resolveBuildMode(project);
+  let profile = detectAddIntentProfile(cleaned, project);
+  profile = applyProjectPlaybook(profile, project, isBig);
+  profile = applyCostModeToProfile(profile, state, buildMode);
   const repo = repoPath(project);
   const verify = resolveVerifyCommand(project);
   const godBot = resolveGodBotRelativePath(project);
   const readList = formatReadList(project, godBot);
   const stackLine = formatStackLine(project);
-  const buildMode = resolveBuildMode(project);
   const steps = addStepsForIntent(project, state, cleaned, brief, buildMode, profile);
   const stepBlock = steps.map((s) => `${s.n}. ${s.who} — ${s.task}`).join("\n");
   const phaseBlock = isBig ? formatPhaseBlock(cleaned, profile) : null;
-  const godSeed = formatGodModeSeed(project);
+  const godSeed = formatGodModeBlock(project, buildMode);
+  const playbookBoot = formatPlaybookBootBlock(project);
   const header = formatAddHeader(cleaned, brief, profile, isBig);
 
   const meta = [
     formatAddBotsBlock(project, state, godBot, steps, buildMode),
     stackLine,
+    playbookBoot ? `Playbook:\n${playbookBoot}` : "",
     cavemanLine(state, project),
     formatCostLine(state, buildMode),
     godSeed,

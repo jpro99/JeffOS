@@ -546,7 +546,22 @@ export const PROJECT_OPS: Record<string, ProjectOps> = {
       taskType: "deploy",
       quickAction: "continue-build",
     },
-    godModeIdeas: [],
+    godModeIdeas: [
+      {
+        id: "gm-edgar-1",
+        question: "How do we beat RustDesk/MeshCentral?",
+        insight:
+          "One Connect button + giant host consent banner + Entra trust — office feels pro, not hacky.",
+        leverage: "high",
+      },
+      {
+        id: "gm-edgar-2",
+        question: "Fleet wow factor?",
+        insight:
+          "NAS dashboard shows all office PCs green — one-click agent update when Jeff approves.",
+        leverage: "high",
+      },
+    ],
     notes: "Start with START-HERE-EDGAR.md",
   },
   "proj-story-pals": {
