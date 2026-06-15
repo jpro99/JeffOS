@@ -12,6 +12,7 @@ import { cn, copyToClipboard } from "@/lib/utils";
 
 const QUICK_CHIPS: { label: string; intent: string; route: BuilderRoute }[] = [
   { label: "Fix errors", intent: "Fix all build errors and verify npm run build passes", route: "fix" },
+  { label: "Paste error", intent: "I pasted a build error — analyze and fix with minimal diff", route: "fix" },
   { label: "Close gaps", intent: "Close remaining gaps and make verify show honest truth", route: "gaps" },
   { label: "Ship", intent: "Ship to GitHub and verify Vercel deploy", route: "ship" },
   {

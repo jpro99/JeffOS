@@ -13,6 +13,7 @@ import { EasyErrorFixPanel } from "@/components/easy/EasyErrorFixPanel";
 import { EasyGapsPanel, OperationalStatusButton } from "@/components/easy/EasyGapsPanel";
 import { EasySelfBuildBanner } from "@/components/easy/EasySelfBuildBanner";
 import { EasyCostBreakdown } from "@/components/easy/EasyCostBreakdown";
+import { PasteFixPanel } from "@/components/shared/PasteFixPanel";
 
 const statusColors: Record<string, string> = {
   operational: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/25",
@@ -70,6 +71,7 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
   const [gapsOpen, setGapsOpen] = useState(false);
   const [verifyReport, setVerifyReport] = useState<VerifyReport | null>(null);
   const [scanMode, setScanMode] = useState<"quick" | "verify">("quick");
+  const [pasteSeed, setPasteSeed] = useState("");
   const projectRef = useRef(project);
   projectRef.current = project;
 
@@ -245,9 +247,21 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
             </p>
           )}
           {!verifyReport.buildPassed && verifyReport.buildLogTail && (
-            <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-black/40 p-2 font-mono text-[10px] leading-relaxed opacity-80">
-              {verifyReport.buildLogTail}
-            </pre>
+            <>
+              <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-black/40 p-2 font-mono text-[10px] leading-relaxed opacity-80">
+                {verifyReport.buildLogTail}
+              </pre>
+              <button
+                type="button"
+                onClick={() => {
+                  setPasteSeed(verifyReport.buildLogTail ?? "");
+                  document.getElementById("paste-fix-panel")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="mt-2 text-xs text-rose-400 hover:underline"
+              >
+                Paste this into Fix analyzer ↓
+              </button>
+            </>
           )}
         </div>
       )}
@@ -281,6 +295,8 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
           </span>
         ))}
       </div>
+
+      <PasteFixPanel project={project} initialPaste={pasteSeed || undefined} />
 
       {(fixOpen ||
         missionComplete ||

@@ -11,6 +11,7 @@ import {
   resolveGodBotRelativePath,
 } from "@/lib/command-center/paths";
 import { buildGodBotFromTemplate, defaultAddonsTemplate } from "@/lib/command-center/template";
+import { PasteFixPanel } from "@/components/shared/PasteFixPanel";
 import { cn } from "@/lib/utils";
 
 type DocTab = "god-bot" | "addons" | "control-tower" | "project-index" | "worker-bots";
@@ -273,6 +274,8 @@ export function ProjectCommandCenterPanel({ project }: { project: Project }) {
           </div>
         </div>
       </Card>
+
+      <PasteFixPanel project={project} />
 
       <Card className="space-y-4">
         <div className="flex flex-wrap gap-2 border-b border-white/[0.05] pb-2">
