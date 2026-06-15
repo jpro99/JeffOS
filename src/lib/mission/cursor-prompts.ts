@@ -52,32 +52,96 @@ function dedupeSentences(text: string): string {
   return out.join(" ");
 }
 
-/** Caveman brief for the prompt header — bullets when voice ramble is long. */
+function splitIntoSentences(text: string): string[] {
+  return dedupeSentences(text)
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+/** Voice often inserts periods mid-thought — short chunks are not real sentences. */
+function isFragmentedVoice(text: string): boolean {
+  const parts = splitIntoSentences(text);
+  if (parts.length < 3) return false;
+  const avg = parts.reduce((a, p) => a + p.length, 0) / parts.length;
+  const short = parts.filter((p) => p.length < 55).length;
+  return avg < 50 || short / parts.length >= 0.55;
+}
+
+function mergeVoiceFragments(text: string): string {
+  const parts = splitIntoSentences(text).filter((p) => {
+    if (p.length < 10) return false;
+    if (/\b(also|and|to|a|the|into|about|should)$/i.test(p.trim())) return false;
+    return true;
+  });
+  if (parts.length === 0) return text.trim();
+  return parts
+    .map((p, i) => (i === 0 ? p : `${p.charAt(0).toLowerCase()}${p.slice(1)}`))
+    .join(", ")
+    .replace(/,\s*,/g, ",")
+    .trim();
+}
+
+/** One clear goal line for Builder — especially after voice transcription. */
+export function synthesizeAddGoal(cleaned: string): string {
+  const t = cleaned.toLowerCase();
+
+  if (/\bremote|desktop|rdp|vnc|screen share\b/.test(t)) {
+    const fleet = /\b8 pc|eight pc|fleet|all pc|promote|multiple computer|8 computer/.test(t);
+    const files = /\bfile|transfer|upload|download\b/.test(t);
+    let goal =
+      "Professional remote desktop — connect to one Edgar PC from anywhere with clear host consent";
+    if (files) goal += "; bidirectional file transfer between two linked PCs";
+    if (fleet) goal += " (Phase 2: enroll ~8 office PCs — not this session)";
+    return goal;
+  }
+
+  if (isFragmentedVoice(cleaned)) {
+    const merged = mergeVoiceFragments(cleaned);
+    return merged.length > 40 ? merged : cleaned.slice(0, 280).trim();
+  }
+
+  if (cleaned.length > 220) return summarizeIntent(cleaned);
+  return cleaned;
+}
+
+function verifyLabel(project: Project): string {
+  return resolveVerifyCommand(project).replace(/\s*\(.*$/, "").trim();
+}
+
+/** Caveman brief for the prompt header — bullets only for real sentences, not voice fragments. */
 export function formatIntentBrief(cleaned: string): string {
   if (!cleaned) return "";
 
-  const sentences = dedupeSentences(cleaned)
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 12);
+  if (isFragmentedVoice(cleaned)) {
+    return synthesizeAddGoal(cleaned);
+  }
 
-  if (sentences.length >= 3 || (cleaned.length > 200 && sentences.length >= 2)) {
-    return sentences
-      .slice(0, 7)
-      .map((s) => `- ${s.replace(/[.!?]+\s*$/, "")}`)
-      .join("\n");
+  const sentences = splitIntoSentences(cleaned).filter((s) => s.length > 12);
+
+  if (sentences.length >= 3) {
+    const avgLen = sentences.reduce((a, s) => a + s.length, 0) / sentences.length;
+    if (avgLen >= 45) {
+      return sentences
+        .slice(0, 7)
+        .map((s) => `- ${s.replace(/[.!?]+\s*$/, "")}`)
+        .join("\n");
+    }
   }
 
   if (cleaned.length <= 420) return cleaned;
 
   if (sentences.length >= 2) {
-    return sentences
-      .slice(0, 7)
-      .map((s) => `- ${s.replace(/[.!?]+\s*$/, "")}`)
-      .join("\n");
+    const avgLen = sentences.reduce((a, s) => a + s.length, 0) / sentences.length;
+    if (avgLen >= 45) {
+      return sentences
+        .slice(0, 7)
+        .map((s) => `- ${s.replace(/[.!?]+\s*$/, "")}`)
+        .join("\n");
+    }
   }
 
-  return `${cleaned.slice(0, 400).trim()}…`;
+  return synthesizeAddGoal(cleaned);
 }
 
 function formatReadList(project: Project, godBotRel: string): string {
@@ -354,15 +418,16 @@ function formatAddBotsBlock(
 function addStepsForIntent(
   project: Project,
   state: MissionControlState,
+  cleaned: string,
   intentBrief: string,
-  verify: string,
   buildMode: BuildMode,
 ): AddStep[] {
+  const goal = synthesizeAddGoal(cleaned);
   const oneLine = intentBrief.replace(/\n- /g, "; ").replace(/\s+/g, " ").trim();
-  const summary = oneLine.length > 140 ? summarizeIntent(oneLine) : oneLine;
   const isSmall = isSingleTaskIntent(oneLine) || oneLine.length < 200;
-  const isBig = isBigAddIntent(oneLine);
+  const isBig = isBigAddIntent(cleaned);
   const careful = buildMode === "careful" || buildMode === "god" || isBig;
+  const verifyShort = verifyLabel(project);
 
   const spec = botName(state, project, "spec-bot", "Spec Bot");
   const architect = botName(state, project, "architect-bot", "Architect Bot");
@@ -375,16 +440,16 @@ function addStepsForIntent(
 
   if (isSmall && !careful && !isFix) {
     return [
-      { n: 1, who: builder, task: oneLine },
-      { n: 2, who: test, task: `Run \`${verify}\` — must pass` },
+      { n: 1, who: builder, task: goal },
+      { n: 2, who: test, task: `Run \`${verifyShort}\` — must pass` },
     ];
   }
 
   if (isFix && isSmall) {
     return [
       { n: 1, who: debug, task: "Root cause — one line" },
-      { n: 2, who: builder, task: oneLine },
-      { n: 3, who: test, task: `Run \`${verify}\` — must pass` },
+      { n: 2, who: builder, task: goal },
+      { n: 3, who: test, task: `Run \`${verifyShort}\` — must pass` },
     ];
   }
 
@@ -407,7 +472,7 @@ function addStepsForIntent(
     });
   }
 
-  if (needsSecurityStep(oneLine, buildMode)) {
+  if (needsSecurityStep(cleaned, buildMode)) {
     steps.push({
       n: n++,
       who: security,
@@ -418,9 +483,13 @@ function addStepsForIntent(
   steps.push({
     n: n++,
     who: builder,
-    task: `Implement Phase 1 — ${summary}`,
+    task: `Implement Phase 1 — ${goal}`,
   });
-  steps.push({ n: n++, who: test, task: `Run \`${verify}\` — must pass` });
+  steps.push({
+    n: n++,
+    who: test,
+    task: `Run \`${verifyShort}\` — see God Bot doc; must pass`,
+  });
 
   return steps;
 }
@@ -438,7 +507,7 @@ export function buildCompactAddPrompt(
   const godBot = resolveGodBotRelativePath(project);
   const readList = formatReadList(project, godBot);
   const buildMode = resolveBuildMode(project);
-  const steps = addStepsForIntent(project, state, brief, verify, buildMode);
+  const steps = addStepsForIntent(project, state, cleaned, brief, buildMode);
   const stepBlock = steps.map((s) => `${s.n}. ${s.who} — ${s.task}`).join("\n");
   const phaseBlock = formatPhaseBlock(cleaned);
   const godSeed = formatGodModeSeed(project);

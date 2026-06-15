@@ -94,7 +94,24 @@ describe("cursor-prompts — add to project", () => {
     assert.ok(stepCount >= 4);
   });
 
-  it("small UI ask uses Builder + Test only", () => {
+  it("synthesizes fragmented voice instead of broken bullets", () => {
+    const voice =
+      "It needs to be a complete. Professional Remote desktop into. PC from anywhere in the world. He's gonna have about 8 computers. That he has to promote into. He must be able to transfer files between computers. The app should also.";
+    const brief = formatIntentBrief(cleanAddIntent(voice));
+    assert.doesNotMatch(brief, /^- It needs to be a complete/m);
+    assert.match(brief, /remote desktop/i);
+    assert.match(brief, /file transfer/i);
+  });
+
+  it("Edgar voice prompt uses synthesized goal in Builder step", () => {
+    const voice =
+      "It needs to be a complete. Professional Remote desktop into. PC from anywhere in the world. He's gonna have about 8 computers. That he has to promote into. He must be able to transfer files between computers. The app should also.";
+    const { prompt } = buildCompactAddPrompt(edgar, voice, state);
+    assert.match(prompt, /Jeff wants: Professional remote desktop/);
+    assert.match(prompt, /Implement Phase 1 — Professional remote desktop/);
+    assert.doesNotMatch(prompt, /It needs to be a complete/);
+    assert.match(prompt, /Run `dotnet build`/);
+  });
     const { prompt, stepCount } = buildCompactAddPrompt(
       jeffOs,
       "Change the purple Go button label to say Copy prompt",
