@@ -11,6 +11,7 @@ import {
   playbookVerifyOverride,
   type AddIntentProfile,
 } from "@/lib/mission/add-prompt-playbooks";
+import { formatDesignReferenceBlock, type DesignReference } from "@/lib/mission/design-from-image";
 import { recommendBuildMode, type BuildMode } from "@/lib/mission/suggest-project-bots";
 import { DEFAULT_REPO_PROFILE } from "@/lib/project-scan/repo-profile";
 import type { BotDefinition, BotTypeId, InterfaceId, MissionControlState, Project } from "@/lib/types";
@@ -690,14 +691,29 @@ export function buildCompactAddPrompt(
   project: Project,
   intent: string,
   state: MissionControlState,
+  designRef?: DesignReference,
 ): { prompt: string; stepCount: number } {
   const cleaned = cleanAddIntent(intent);
   const brief = formatIntentBrief(cleaned);
-  const isBig = isBigAddIntent(cleaned);
+  const isBig = isBigAddIntent(cleaned) || Boolean(designRef);
   const buildMode = resolveBuildMode(project);
   let profile = detectAddIntentProfile(cleaned, project);
   profile = applyProjectPlaybook(profile, project, isBig);
   profile = applyCostModeToProfile(profile, state, buildMode);
+
+  if (designRef) {
+    profile = {
+      ...profile,
+      domain: profile.domain === "generic" ? "ui" : profile.domain,
+      acceptance: [
+        ...profile.acceptance,
+        `UI matches reference screenshot — bg ${designRef.backgroundHex}, accent ${designRef.accentHex}`,
+      ],
+      builderHint: `${profile.builderHint} — replicate reference colors, spacing, and component style`,
+      architectTask: `${profile.architectTask} — design system from Jeff's attached screenshot`,
+    };
+  }
+
   const repo = repoPath(project);
   const verify = resolveVerifyCommand(project);
   const godBot = resolveGodBotRelativePath(project);
@@ -709,6 +725,7 @@ export function buildCompactAddPrompt(
   const godSeed = formatGodModeBlock(project, buildMode);
   const playbookBoot = formatPlaybookBootBlock(project);
   const header = formatAddHeader(cleaned, brief, profile, isBig);
+  const designBlock = designRef ? formatDesignReferenceBlock(designRef) : "";
 
   const meta = [
     formatAddBotsBlock(project, state, godBot, steps, buildMode),
@@ -732,7 +749,7 @@ export function buildCompactAddPrompt(
 
   const prompt = `# ADD TO PROJECT — ${project.name}
 ${header}
-
+${designBlock ? `\n${designBlock}\n` : ""}
 Repo: ${repo}
 Read: ${readList}
 Verify: ${verify}

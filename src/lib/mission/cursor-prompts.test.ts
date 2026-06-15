@@ -131,4 +131,21 @@ describe("cursor-prompts — add to project", () => {
     assert.doesNotMatch(prompt, /Phase 1 ONLY/);
     assert.equal(stepCount, 2);
   });
+
+  it("includes design reference block when photo palette provided", () => {
+    const { prompt } = buildCompactAddPrompt(jeffOs, "Match this dashboard layout", state, {
+      fileName: "ref.png",
+      width: 1200,
+      height: 800,
+      isDark: true,
+      backgroundHex: "#18181b",
+      textHex: "#f4f4f5",
+      accentHex: "#8b5cf6",
+      palette: ["#18181b", "#8b5cf6", "#27272a"],
+      summary: "Dark UI — bg #18181b, accent #8b5cf6",
+    });
+    assert.match(prompt, /Design reference/);
+    assert.match(prompt, /#8b5cf6/);
+    assert.match(prompt, /attach the same screenshot/);
+  });
 });

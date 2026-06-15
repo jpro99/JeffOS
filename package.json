@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npx tsx --test src/lib/project-scan/error-patterns.test.ts src/lib/mission/cursor-prompts.test.ts src/lib/mission/add-prompt-playbooks.test.ts src/lib/mission/whats-next-suggestions.test.ts",
+    "test": "npx tsx --test src/lib/project-scan/error-patterns.test.ts src/lib/mission/cursor-prompts.test.ts src/lib/mission/add-prompt-playbooks.test.ts src/lib/mission/design-from-image.test.ts src/lib/mission/whats-next-suggestions.test.ts",
     "push-live": "powershell -ExecutionPolicy Bypass -File ./scripts/push-live.ps1",
     "go": "powershell -ExecutionPolicy Bypass -File ./scripts/jeff-go.ps1"
   },
