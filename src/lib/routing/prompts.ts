@@ -1,5 +1,6 @@
 import type { BotDefinition, MissionControlState, Project, PromptBuilderInput, PromptBuilderOutput } from "@/lib/types";
 import { computeRouting } from "@/lib/routing/engine";
+import { formatDocsRead, jeffOsDocsAbsolutePath } from "@/lib/jeff-os/branding";
 
 function caveman(on: boolean, text: string): string {
   if (!on) return text;
@@ -35,8 +36,8 @@ export function buildPromptPackets(
 
   const controlTowerPacket = caveman(
     cavemanMode,
-    `Read AI-COMMAND-CENTER/CONTROL_TOWER.md
-Read AI-COMMAND-CENTER/PROJECT_INDEX.md
+    `${formatDocsRead("CONTROL_TOWER.md")}
+${formatDocsRead("PROJECT_INDEX.md")}
 Jeff wants: ${input.goal}
 Project: ${project?.name ?? "TBD"}
 Task type: ${input.taskType}
@@ -46,7 +47,7 @@ Mode: ${cavemanMode ? "caveman" : "normal"}`,
 
   const godBotPacket = caveman(
     cavemanMode,
-    `Read C:\\Projects\\Project Command\\AI-COMMAND-CENTER\\projects\\${project?.slug ?? "PROJECT"}.md
+    `Read ${jeffOsDocsAbsolutePath().replace(/\\/g, "/")}/projects/${project?.slug ?? "PROJECT"}.md
 Also read repo README.md and AGENTS.md if exist.
 Path: ${project?.path ?? "confirm path"}
 Jeff wants: ${input.goal}
@@ -81,13 +82,13 @@ export function quickLaunchPrompt(
   kind: "control-tower" | "god-bot" | "worker",
 ): string {
   if (kind === "control-tower") {
-    return `Read AI-COMMAND-CENTER/CONTROL_TOWER.md
-Read AI-COMMAND-CENTER/PROJECT_INDEX.md
+    return `${formatDocsRead("CONTROL_TOWER.md")}
+${formatDocsRead("PROJECT_INDEX.md")}
 Focus project: ${project.name}
 Mode: caveman`;
   }
   if (kind === "god-bot") {
-    return `Read AI-COMMAND-CENTER/projects/${project.slug}.md
+    return `${formatDocsRead(`projects/${project.slug}.md`)}
 Open path: ${project.path ?? "see PROJECT_INDEX"}
 Jeff wants: [goal here]
 Mode: caveman`;

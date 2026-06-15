@@ -8,9 +8,9 @@ import {
   buildPushLiveShellCommand,
   resolvePushLiveTarget,
 } from "@/lib/deploy/push-live";
-import { clientPublicOrigin } from "@/lib/deploy/online-access";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { cn, copyToClipboard } from "@/lib/utils";
+import { useIsLocalhost, useMounted } from "@/lib/hooks/use-mounted";
 
 export function PushLivePanel({
   project,
@@ -50,11 +50,8 @@ export function PushLivePanel({
     () => (project ? buildPushLiveShellCommand(project) : null),
     [project],
   );
-  const isLocalDev = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    const h = window.location.hostname;
-    return h === "localhost" || h === "127.0.0.1";
-  }, []);
+  const isLocalDev = useIsLocalhost();
+  const mounted = useMounted();
 
   const sendToCursor = useCallback(async () => {
     if (!project) {
@@ -159,7 +156,7 @@ export function PushLivePanel({
         )}
       </div>
 
-      {!isLocalDev && clientPublicOrigin() && (
+      {mounted && !isLocalDev && (
         <p className="text-[10px] text-zinc-600">
           On the public site: use <strong className="text-zinc-500">Copy → Cursor</strong> (browser cannot git push).
           Run Jeff OS locally for Push now.

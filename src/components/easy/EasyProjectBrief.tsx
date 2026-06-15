@@ -13,7 +13,6 @@ import { EasyErrorFixPanel } from "@/components/easy/EasyErrorFixPanel";
 import { EasyGapsPanel, OperationalStatusButton } from "@/components/easy/EasyGapsPanel";
 import { EasySelfBuildBanner } from "@/components/easy/EasySelfBuildBanner";
 import { EasyCostBreakdown } from "@/components/easy/EasyCostBreakdown";
-import { PasteFixPanel } from "@/components/shared/PasteFixPanel";
 
 const statusColors: Record<string, string> = {
   operational: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/25",
@@ -58,9 +57,11 @@ interface EasyProjectBriefProps {
   project: Project;
   onScanComplete?: (brief: ProjectBrief) => void;
   onFixComplete?: () => void;
+  onPasteSeed?: (text: string) => void;
+  refreshToken?: number;
 }
 
-export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: EasyProjectBriefProps) {
+export function EasyProjectBrief({ project, onScanComplete, onFixComplete, onPasteSeed, refreshToken }: EasyProjectBriefProps) {
   const { updateProject } = useMissionControl();
   const [brief, setBrief] = useState<ProjectBrief | null>(null);
   const [inventory, setInventory] = useState<ConnectionInventoryItem[]>([]);
@@ -71,7 +72,6 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
   const [gapsOpen, setGapsOpen] = useState(false);
   const [verifyReport, setVerifyReport] = useState<VerifyReport | null>(null);
   const [scanMode, setScanMode] = useState<"quick" | "verify">("quick");
-  const [pasteSeed, setPasteSeed] = useState("");
   const projectRef = useRef(project);
   projectRef.current = project;
 
@@ -126,7 +126,16 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
           onScanComplete?.(data.brief);
         }
         if (data.inventory) setInventory(data.inventory);
-        if (data.scan) setScan(data.scan);
+        if (data.scan) {
+          setScan(data.scan);
+          if (data.scan.exists) {
+            updateProject({
+              ...live,
+              path: live.path || data.scan.path,
+              pathExists: true,
+            });
+          }
+        }
         if (!data.ok && data.error) setErr(data.error);
       } catch (e) {
         const aborted = e instanceof Error && e.name === "AbortError";
@@ -150,7 +159,7 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
 
   useEffect(() => {
     void runScanRef.current(false);
-  }, [project.id, project.path]);
+  }, [project.id, project.path, refreshToken]);
 
   if (loading) {
     return (
@@ -254,7 +263,7 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
               <button
                 type="button"
                 onClick={() => {
-                  setPasteSeed(verifyReport.buildLogTail ?? "");
+                  onPasteSeed?.(verifyReport.buildLogTail ?? "");
                   document.getElementById("paste-fix-panel")?.scrollIntoView({ behavior: "smooth" });
                 }}
                 className="mt-2 text-xs text-rose-400 hover:underline"
@@ -295,8 +304,6 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
           </span>
         ))}
       </div>
-
-      <PasteFixPanel project={project} initialPaste={pasteSeed || undefined} />
 
       {(fixOpen ||
         missionComplete ||

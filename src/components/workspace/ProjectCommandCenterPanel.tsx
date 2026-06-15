@@ -5,13 +5,16 @@ import type { Project } from "@/lib/types";
 import { useMissionControl } from "@/lib/store/context";
 import { Card, CardDescription, CardTitle } from "@/components/ui/Card";
 import {
-  COMMAND_CENTER_ROOT,
-  READABLE_DOCS,
   resolveAddonsRelativePath,
   resolveGodBotRelativePath,
-} from "@/lib/command-center/paths";
+} from "@/lib/command-center/doc-paths";
+import {
+  JEFF_OS_DOCS_LABEL,
+  JEFF_OS_DOCS_REL,
+  JEFF_OS_READABLE_DOCS,
+  jeffOsDocsAbsolutePath,
+} from "@/lib/jeff-os/branding";
 import { buildGodBotFromTemplate, defaultAddonsTemplate } from "@/lib/command-center/template";
-import { PasteFixPanel } from "@/components/shared/PasteFixPanel";
 import { cn } from "@/lib/utils";
 
 type DocTab = "god-bot" | "addons" | "control-tower" | "project-index" | "worker-bots";
@@ -91,13 +94,13 @@ export function ProjectCommandCenterPanel({ project }: { project: Project }) {
       setAddons({ ...ad, dirty: false });
 
       const refs: Record<string, FileState> = {};
-      for (const doc of READABLE_DOCS.filter((d) => d !== "PROJECT_GOD_BOT_TEMPLATE.md" && d !== "SETUP_GUIDE.md")) {
+      for (const doc of JEFF_OS_READABLE_DOCS.filter((d) => d !== "PROJECT_GOD_BOT_TEMPLATE.md" && d !== "SETUP_GUIDE.md")) {
         const loaded = await loadFile(doc);
         refs[doc] = { ...loaded, dirty: false };
       }
       setRefDocs(refs);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Could not load Command Center files");
+      setErr(e instanceof Error ? e.message : `Could not load ${JEFF_OS_DOCS_LABEL}`);
     } finally {
       setLoading(false);
     }
@@ -140,7 +143,7 @@ export function ProjectCommandCenterPanel({ project }: { project: Project }) {
     try {
       const content = docTab === "god-bot" ? godBot.content : addons.content;
       const modifiedAt = await saveFile(activeRelativePath, content);
-      addActivity(`Saved Command Center: ${activeRelativePath}`, "project", project.id);
+      addActivity(`Saved ${JEFF_OS_DOCS_LABEL}: ${activeRelativePath}`, "project", project.id);
 
       if (docTab === "god-bot") {
         setGodBot((s) => ({ ...s, exists: true, modifiedAt, dirty: false }));
@@ -203,10 +206,10 @@ export function ProjectCommandCenterPanel({ project }: { project: Project }) {
       <Card className="space-y-4" glow>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <CardTitle>Command Center — inside {project.name}</CardTitle>
+            <CardTitle>{JEFF_OS_DOCS_LABEL} — {project.name}</CardTitle>
             <CardDescription>
-              Edit God Bot + add-ons on disk. Same files Cursor agents read from{" "}
-              <code className="text-teal-700">AI-COMMAND-CENTER/</code>.
+              Edit God Bot + add-ons on disk. Same markdown Cursor reads from{" "}
+              <code className="text-teal-700">{JEFF_OS_DOCS_REL}/</code> inside Jeff OS.
             </CardDescription>
           </div>
           <button
@@ -230,15 +233,15 @@ export function ProjectCommandCenterPanel({ project }: { project: Project }) {
           )}
           <button
             type="button"
-            onClick={() => void openFolder(COMMAND_CENTER_ROOT, "Command Center")}
+            onClick={() => void openFolder(jeffOsDocsAbsolutePath(), JEFF_OS_DOCS_LABEL)}
             className="rounded-full border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-sm text-zinc-200 hover:bg-white/[0.07]"
           >
-            📂 AI-COMMAND-CENTER
+            📂 {JEFF_OS_DOCS_LABEL}
           </button>
           <button
             type="button"
             onClick={() =>
-              void openFolder(`${COMMAND_CENTER_ROOT}\\projects`, "God Bot folder")
+              void openFolder(`${jeffOsDocsAbsolutePath()}\\projects`, "God Bot folder")
             }
             className="rounded-full border border-white/[0.08] px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200"
           >
@@ -275,7 +278,9 @@ export function ProjectCommandCenterPanel({ project }: { project: Project }) {
         </div>
       </Card>
 
-      <PasteFixPanel project={project} />
+      <p className="text-xs text-zinc-600">
+        Paste errors and get fixes in the <strong className="text-zinc-500">Paste &amp; fix</strong> box at the top of this project page.
+      </p>
 
       <Card className="space-y-4">
         <div className="flex flex-wrap gap-2 border-b border-white/[0.05] pb-2">
@@ -326,7 +331,7 @@ export function ProjectCommandCenterPanel({ project }: { project: Project }) {
                   <>
                     <button
                       type="button"
-                      onClick={() => appendQuickNote("Gotchas", "Jeff note from Mission Control")}
+                      onClick={() => appendQuickNote("Gotchas", "Jeff note from Jeff OS")}
                       className="rounded-lg border border-white/[0.08] px-3 py-1.5 text-xs text-zinc-500"
                     >
                       + Gotcha
@@ -381,7 +386,7 @@ export function ProjectCommandCenterPanel({ project }: { project: Project }) {
 
         <p className="text-[10px] text-zinc-600">
           Saves go to{" "}
-          <code className="text-zinc-500">{COMMAND_CENTER_ROOT.replace(/\\/g, "/")}</code>. Run dev
+          <code className="text-zinc-500">{jeffOsDocsAbsolutePath().replace(/\\/g, "/")}</code>. Run dev
           locally — not on Vercel.
         </p>
       </Card>

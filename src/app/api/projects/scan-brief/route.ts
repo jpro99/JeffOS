@@ -89,6 +89,7 @@ export async function POST(request: Request) {
       inventory,
       verify,
       report,
+      folderExists: scan.exists,
       updatedOps: opsForBrief,
     });
   } catch (error) {

@@ -26,6 +26,7 @@ import {
 import { CursorBuildPrerequisites } from "@/components/shared/CursorBuildPrerequisites";
 import { DEFAULT_PROJECTS_ROOT } from "@/lib/discovery/catalog";
 import { resolveProjectPath } from "@/lib/mission/project-location";
+import { suggestNameFromPitch } from "@/lib/mission/project-journey";
 import { cn, copyToClipboard } from "@/lib/utils";
 
 const PLATFORMS = ["web", "mobile", "desktop", "api"];
@@ -109,9 +110,10 @@ export function EasyNewProjectWizard() {
   });
   const [goalsText, setGoalsText] = useState("");
   const [location, setLocation] = useState<ProjectLocationValue>(() => ({
-    parentFolder: state.settings.projectsRoots[0] ?? DEFAULT_PROJECTS_ROOT,
+    parentFolder: "C:\\Users\\Jeff Russell\\Desktop",
     targetPath: "",
   }));
+  const [folderCreated, setFolderCreated] = useState(false);
 
   const resolvedTargetPath = useMemo(
     () => resolveProjectPath(location.parentFolder, form.name, location.targetPath || undefined),
@@ -234,6 +236,7 @@ export function EasyNewProjectWizard() {
       setMsg(folderResult.ok ? `Folder at ${targetPath} — select prompt below and copy` : "Prompt ready — tap Copy below");
     }
     addActivity(`New app wizard: ${created.name} at ${targetPath} (${buildMode})`, "project", created.id);
+    router.push(`/easy/projects/${created.id}`);
   };
 
   return (
@@ -242,9 +245,9 @@ export function EasyNewProjectWizard() {
         <Link href="/easy/projects" className="text-sm text-zinc-600 hover:text-teal-500">
           ← Projects
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-zinc-50">New application</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-zinc-50">New project</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Four steps — idea → suggestion → mode → build. One Next button. No guessing.
+          What do you want to create today? Type it → Go → folder → build. Stay at the top — keep tapping Next.
         </p>
       </div>
 
@@ -252,30 +255,36 @@ export function EasyNewProjectWizard() {
         <>
           <WizardStepBar
             step={1}
-            nextLabel="Next → Our suggestion"
+            nextLabel="Go → AI plan"
             onNext={goStep2}
             nextDisabled={!canNextStep1}
           />
-          <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-              Step 1 — Your idea
-            </p>
+          <section className="space-y-4 rounded-2xl border border-teal-500/20 bg-teal-500/[0.05] p-5">
+            <p className="text-lg font-medium text-zinc-100">What do you want to create today?</p>
             <label className="block text-xs text-zinc-600">
-              App name
+              Tell Jeff OS in plain words
+              <textarea
+                value={form.pitch}
+                onChange={(e) => {
+                  const pitch = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    pitch,
+                    name: f.name.trim() ? f.name : suggestNameFromPitch(pitch),
+                  }));
+                }}
+                rows={5}
+                className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-zinc-200 placeholder:text-zinc-700"
+                placeholder="Example: A study app for nurse practitioner exams with flashcards and practice tests on web and phone"
+              />
+            </label>
+            <label className="block text-xs text-zinc-600">
+              App name (auto-filled — edit if you want)
               <input
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-zinc-200"
-                placeholder="My New App"
-              />
-            </label>
-            <label className="block text-xs text-zinc-600">
-              One-line pitch
-              <input
-                value={form.pitch}
-                onChange={(e) => setForm((f) => ({ ...f, pitch: e.target.value }))}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-zinc-200"
-                placeholder="What is this in one sentence?"
+                placeholder="Nurse Practitioner Study"
               />
             </label>
             <label className="block text-xs text-zinc-600">
@@ -319,18 +328,6 @@ export function EasyNewProjectWizard() {
               </div>
             </div>
 
-            {form.name.trim().length > 0 && (
-              <ProjectLocationPicker
-                projectName={form.name}
-                parentOptions={state.settings.projectsRoots}
-                value={{
-                  parentFolder: location.parentFolder,
-                  targetPath: location.targetPath || resolvedTargetPath,
-                }}
-                onChange={setLocation}
-              />
-            )}
-
             {liveRec && form.platforms.length > 0 && (
               <div className="space-y-3 rounded-xl border border-teal-500/20 bg-teal-500/5 p-4">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-400/90">
@@ -360,7 +357,7 @@ export function EasyNewProjectWizard() {
               disabled={!canNextStep1}
               className="rounded-full bg-teal-500 px-8 py-3 text-sm font-semibold text-black hover:bg-teal-400 disabled:opacity-40"
             >
-              Next → Our suggestion
+              Go → AI plan
             </button>
           </div>
         </>
@@ -449,12 +446,60 @@ export function EasyNewProjectWizard() {
             step={3}
             showBack
             onBack={() => setStep(2)}
-            nextLabel="Next → Build it"
+            nextLabel="Next → Launch"
             onNext={goStep4}
+            nextDisabled={!folderCreated}
+          />
+          <section className="space-y-4 rounded-2xl border border-indigo-500/25 bg-indigo-500/[0.06] p-5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-300">
+              Step 3 — Create folder on your PC
+            </p>
+            <p className="text-sm text-zinc-400">
+              Jeff OS needs a folder before Cursor can write code. Default is Desktop — change if you want.
+            </p>
+            <ProjectLocationPicker
+              projectName={form.name}
+              parentOptions={["C:\\Users\\Jeff Russell\\Desktop", ...state.settings.projectsRoots]}
+              value={{
+                parentFolder: location.parentFolder,
+                targetPath: location.targetPath || resolvedTargetPath,
+              }}
+              onChange={setLocation}
+            />
+            <button
+              type="button"
+              onClick={async () => {
+                const path = resolvedTargetPath;
+                const result = await createProjectFolderOnDisk(path);
+                setFolderCreated(result.ok);
+                setMsg(result.message);
+              }}
+              className="w-full rounded-full bg-indigo-500 py-4 text-base font-semibold text-white hover:bg-indigo-400"
+            >
+              Create folder on my PC
+            </button>
+            {folderCreated && (
+              <p className="text-sm text-emerald-400">Folder ready — tap Next → Launch</p>
+            )}
+          </section>
+        </>
+      )}
+
+      {step === 4 && (
+        <>
+          <WizardStepBar
+            step={4}
+            showBack
+            onBack={() => setStep(3)}
+            nextLabel={createdId ? "Open project →" : "Create project →"}
+            onNext={() => {
+              if (createdId) router.push(`/easy/projects/${createdId}`);
+              else void launchBuild();
+            }}
           />
           <section className="space-y-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-              Step 3 — Pick build mode
+              Step 4 — Pick build mode
             </p>
             <p className="text-sm text-zinc-500">Who builds what — then one copy-paste into Cursor.</p>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -499,55 +544,14 @@ export function EasyNewProjectWizard() {
             </section>
           )}
 
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={goStep4}
-              className="rounded-full bg-teal-500 px-8 py-3 text-sm font-semibold text-black hover:bg-teal-400"
-            >
-              Next → Build it
-            </button>
-          </div>
-        </>
-      )}
-
-      {step === 4 && (
-        <>
-          <WizardStepBar
-            step={4}
-            showBack
-            onBack={() => setStep(3)}
-            nextLabel={createdId ? "Open project" : "Build it — copy prompt"}
-            onNext={() => {
-              if (createdId) router.push(`/easy/projects/${createdId}`);
-              else void launchBuild();
-            }}
-          />
           <section className="space-y-4 rounded-2xl border border-teal-500/25 bg-teal-500/5 p-5">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-400">
-              Step 4 — Build it
+              Create project in Jeff OS
             </p>
             <p className="text-sm text-zinc-400">
-              Mode:{" "}
-              <strong className="text-zinc-200">
-                {BUILD_MODES.find((m) => m.id === buildMode)?.label}
-              </strong>
-              . Creates folder at{" "}
-              <span className="font-mono text-teal-600/90">{resolvedTargetPath}</span> — then copy
-              prompt into Cursor.
+              Folder: <span className="font-mono text-teal-600/90">{resolvedTargetPath}</span> — opens the build
+              flow at the top. Paste prompt in Cursor when asked.
             </p>
-            {!createdId && form.name.trim() && (
-              <ProjectLocationPicker
-                projectName={form.name}
-                parentOptions={state.settings.projectsRoots}
-                value={{
-                  parentFolder: location.parentFolder,
-                  targetPath: location.targetPath || resolvedTargetPath,
-                }}
-                onChange={setLocation}
-                compact
-              />
-            )}
             {!createdId ? (
               <button
                 type="button"

@@ -4,6 +4,7 @@ import { useMissionControl } from "@/lib/store/context";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import type { BotTypeId, InterfaceId, ModelClassId } from "@/lib/types";
+import { JeffOsStructureHint } from "@/components/shared/JeffOsStructureHint";
 
 export default function SettingsPage() {
   const { state, updateSettings, resetData } = useMissionControl();
@@ -20,6 +21,8 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-semibold text-zinc-50">Settings</h1>
         <p className="mt-1 text-zinc-500">Jeff defaults and future integration hooks.</p>
       </div>
+
+      <JeffOsStructureHint />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -220,7 +223,7 @@ export default function SettingsPage() {
             <li className="rounded-lg bg-white/[0.02] px-3 py-2">○ Claude Code CLI bridge</li>
             <li className="rounded-lg bg-white/[0.02] px-3 py-2">○ Repo scan / git status sync</li>
             <li className="rounded-lg bg-white/[0.02] px-3 py-2">○ Real model provider + cost tracking</li>
-            <li className="rounded-lg bg-white/[0.02] px-3 py-2">○ AI-COMMAND-CENTER file sync</li>
+            <li className="rounded-lg bg-white/[0.02] px-3 py-2">○ Jeff OS docs file sync</li>
             <li className="rounded-lg bg-white/[0.02] px-3 py-2">○ Activity log from agent runs</li>
           </ul>
         </Card>

@@ -42,9 +42,9 @@ export interface ProjectSuggestion {
 
 export const WIZARD_STEPS: { step: WizardStep; label: string }[] = [
   { step: 1, label: "Your idea" },
-  { step: 2, label: "Our suggestion" },
-  { step: 3, label: "Build mode" },
-  { step: 4, label: "Build it" },
+  { step: 2, label: "AI plan" },
+  { step: 3, label: "Create folder" },
+  { step: 4, label: "Launch" },
 ];
 
 export const BUILD_MODES: {

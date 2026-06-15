@@ -285,7 +285,7 @@ export interface Project {
   preferredInterface: InterfaceId;
   preferredModelClass: ModelClassId;
   activeBotStrategy: string;
-  /** Relative path under AI-COMMAND-CENTER, e.g. projects/kepi-travel.md */
+  /** Relative path under Jeff OS docs, e.g. projects/kepi-travel.md */
   godBotFile?: string;
   jeffMode: "caveman" | "normal";
   lastUpdated: string;

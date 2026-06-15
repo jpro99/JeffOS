@@ -4,10 +4,13 @@ import Link from "next/link";
 import { EASY_START_STEPS } from "@/lib/ui/experience";
 import { ExperiencePicker } from "@/components/easy/ExperiencePicker";
 import { EasyImportHub } from "@/components/easy/EasyImportHub";
+import { EasyJeffGoPanel } from "@/components/easy/EasyJeffGoPanel";
 import { EasyGodModeQuick } from "@/components/easy/EasyGodModeQuick";
 import { EasyOnlineAccess } from "@/components/easy/EasyOnlineAccess";
 import { EasyPortfolioPulse } from "@/components/easy/EasyPortfolioPulse";
 import { useMissionControl } from "@/lib/store/context";
+import { JeffOsStructureHint } from "@/components/shared/JeffOsStructureHint";
+import { JEFF_OS_NAME } from "@/lib/jeff-os/branding";
 
 export function EasyHome() {
   const { state } = useMissionControl();
@@ -21,9 +24,11 @@ export function EasyHome() {
           Install. Import. Command. Ship.
         </h1>
         <p className="max-w-lg text-base leading-relaxed text-zinc-400">
-          Jeff Mission Control — Mac calm, Windows direct. Point at your projects folder, talk to Mission Control,
-          copy one prompt into Cursor. God Mode included.
+          {JEFF_OS_NAME} — one app for all your projects. Pick a folder, tap a button, paste one prompt into Cursor.
+          God Mode included.
         </p>
+
+        <JeffOsStructureHint compact />
 
         <div className="flex flex-wrap gap-3 pt-2">
           <Link
@@ -46,6 +51,8 @@ export function EasyHome() {
           </a>
         </div>
       </section>
+
+      <EasyJeffGoPanel />
 
       <EasyPortfolioPulse />
 

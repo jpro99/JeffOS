@@ -8,7 +8,8 @@ import {
 import { buildMissionBundle, flattenMissionSteps } from "@/lib/mission/bundle";
 import { greenfieldScaffoldBlock } from "@/lib/mission/build-prerequisites";
 import { featuresFromIntent, isVisionIntent, summarizeIntent } from "@/lib/mission/intent";
-import { resolveGodBotRelativePath } from "@/lib/command-center/paths";
+import { resolveGodBotRelativePath } from "@/lib/command-center/doc-paths";
+import { JEFF_OS_NAME, standardDocsReadBlock } from "@/lib/jeff-os/branding";
 import type { MissionControlState, Project } from "@/lib/types";
 import { uid } from "@/lib/utils";
 
@@ -58,7 +59,7 @@ export function buildCommandMissionBundle(
   const botRoles = [...new Set(steps.map((s) => s.label.split(" · ")[0]))];
 
   const header = `# COMMAND SESSION — ${project.name}
-Jeff told Mission Control:
+Jeff told ${JEFF_OS_NAME}:
 "${intent.trim()}"
 
 Mission summary: ${summarizeIntent(intent)}
@@ -67,9 +68,7 @@ Mission summary: ${summarizeIntent(intent)}
 CONTROL TOWER — MASTER ORCHESTRATOR
 ═══════════════════════════════════════
 Read first:
-1. AI-COMMAND-CENTER/CONTROL_TOWER.md
-2. AI-COMMAND-CENTER/PROJECT_INDEX.md
-3. AI-COMMAND-CENTER/${godBotRel}
+${standardDocsReadBlock(godBotRel)}
 4. Repo README.md + AGENTS.md if exist
 
 Project path: ${project.path ?? "CONFIRM WITH JEFF"}

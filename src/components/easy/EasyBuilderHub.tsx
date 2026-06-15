@@ -9,6 +9,7 @@ import { createSpeechRecognitionAdapter } from "@/lib/voice/recognition";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { CursorBuildPrerequisites } from "@/components/shared/CursorBuildPrerequisites";
 import { cn, copyToClipboard } from "@/lib/utils";
+import { JEFF_OS_NAME } from "@/lib/jeff-os/branding";
 
 const QUICK_CHIPS: { label: string; intent: string; route: BuilderRoute }[] = [
   { label: "Fix errors", intent: "Fix all build errors and verify npm run build passes", route: "fix" },
@@ -215,7 +216,7 @@ export function EasyBuilderHub() {
       <div className="mx-auto max-w-3xl px-4 py-5">
         <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-5 shadow-2xl shadow-black/40 ring-1 ring-white/[0.04]">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-teal-500/80">
-            Jeff Mission Control
+            {JEFF_OS_NAME}
           </p>
           <h2 className="mt-1 text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">
             Tell me what you need. I&apos;ll build it.

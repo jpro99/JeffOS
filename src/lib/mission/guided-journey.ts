@@ -37,7 +37,7 @@ export const GUIDED_JOURNEY_STEPS: GuidedJourneyStep[] = [
   {
     id: "welcome",
     title: "Welcome",
-    body: "Jeff Mission Control Easy Mode — one box at top builds everything.",
+    body: "Jeff OS Easy Mode — one box at top builds everything.",
     href: "/easy",
   },
   {

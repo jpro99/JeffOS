@@ -84,18 +84,18 @@ See \`../WORKER_BOTS.md\`
 
 ## Jeff OS add-ons
 
-See \`projects/${project.slug}-addons.md\` for notes added from Mission Control.
+See \`projects/${project.slug}-addons.md\` for notes added from Jeff OS.
 `;
 }
 
 export function defaultAddonsTemplate(project: Project): string {
   return `# ${project.name} — Jeff OS add-ons
 
-Scratch pad for scope notes, session logs, and extra context. Edited from Mission Control.
+Scratch pad for scope notes, session logs, and extra context. Edited from Jeff OS.
 
 ## Session log
 
-- ${new Date().toISOString().slice(0, 10)} — Created from Jeff OS Command Center tab
+- ${new Date().toISOString().slice(0, 10)} — Created from Jeff OS Docs tab
 
 ## Notes
 

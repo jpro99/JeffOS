@@ -21,6 +21,8 @@ import { priorityColors, statusColors } from "@/lib/utils";
 import type { Project, TaskTypeId } from "@/lib/types";
 import { OrchestratorHub } from "@/components/scope/OrchestratorHub";
 import { ProjectCommandCenterPanel } from "@/components/workspace/ProjectCommandCenterPanel";
+import { ProjectFixHub } from "@/components/shared/ProjectFixHub";
+import { ProjectJourneyFlow } from "@/components/journey/ProjectJourneyFlow";
 import { getOrchestrationStats } from "@/lib/orchestration/stats";
 import { useSearchParams } from "next/navigation";
 
@@ -66,7 +68,7 @@ export function ProjectWorkspace({ project }: { project: Project }) {
 
   const tabs: { id: Tab; label: string; badge?: number }[] = [
     { id: "overview", label: "Overview" },
-    { id: "command-center", label: "Command Center" },
+    { id: "command-center", label: "Docs" },
     { id: "scope", label: "Scope & Orchestra", badge: orchStats.total || undefined },
     { id: "connections", label: "Connections", badge: project.connections?.length || undefined },
     { id: "errors", label: "Errors", badge: ops.errors.length || undefined },
@@ -107,6 +109,8 @@ export function ProjectWorkspace({ project }: { project: Project }) {
             </div>
           </div>
         </div>
+
+        <ProjectJourneyFlow project={project} />
 
         <QuickCommands project={project} />
 

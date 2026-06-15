@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
   const absolutePath = toAbsolute(relativePath);
   if (!isUnderCommandCenter(absolutePath)) {
-    return NextResponse.json({ ok: false, error: "Path outside Command Center" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: "Path outside Jeff OS docs" }, { status: 403 });
   }
 
   const meta = statFile(absolutePath);
@@ -68,7 +68,7 @@ export async function PUT(request: Request) {
 
     const absolutePath = toAbsolute(relativePath);
     if (!isUnderCommandCenter(absolutePath)) {
-      return NextResponse.json({ ok: false, error: "Path outside Command Center" }, { status: 403 });
+      return NextResponse.json({ ok: false, error: "Path outside Jeff OS docs" }, { status: 403 });
     }
 
     fs.mkdirSync(path.dirname(absolutePath), { recursive: true });

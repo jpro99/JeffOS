@@ -7,7 +7,8 @@ import type {
   Project,
   ProjectError,
 } from "@/lib/types";
-import { resolveGodBotRelativePath } from "@/lib/command-center/paths";
+import { resolveGodBotRelativePath } from "@/lib/command-center/doc-paths";
+import { jeffOsDocsAbsolutePath, standardDocsReadBlock } from "@/lib/jeff-os/branding";
 import { uid } from "@/lib/utils";
 
 function resolveBotId(bots: BotDefinition[], type: BotTypeId): string {
@@ -237,7 +238,7 @@ export function buildErrorFixBundle(
   if (steps.length === 0) return "";
 
   const godBotRel = resolveGodBotRelativePath(project);
-  const godBotPath = `C:\\Projects\\Project Command\\AI-COMMAND-CENTER\\${godBotRel.replace(/\//g, "\\")}`;
+  const godBotPath = `${jeffOsDocsAbsolutePath()}\\${godBotRel.replace(/\//g, "\\")}`;
   const caveman =
     state.settings.cavemanDefault ||
     project.jeffMode === "caveman" ||
@@ -257,9 +258,7 @@ Jeff selected ${issues.length} issue(s), ${steps.length} bot step(s). Fix before
 CONTROL TOWER — MASTER ORCHESTRATOR
 ═══════════════════════════════════════
 Read first:
-1. AI-COMMAND-CENTER/CONTROL_TOWER.md
-2. AI-COMMAND-CENTER/PROJECT_INDEX.md
-3. AI-COMMAND-CENTER/${godBotRel}
+${standardDocsReadBlock(godBotRel)}
 4. Repo README.md + AGENTS.md if exist
 
 Project path: ${project.path ?? "CONFIRM WITH JEFF"}

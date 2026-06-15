@@ -9,6 +9,8 @@ import { EasyBuilderHub } from "@/components/easy/EasyBuilderHub";
 import { EasyGuidedJourney } from "@/components/easy/EasyGuidedJourney";
 import { EasyOnlineAccess } from "@/components/easy/EasyOnlineAccess";
 import { VoiceMicButton } from "@/components/voice/VoiceMicButton";
+import { JEFF_OS_NAME } from "@/lib/jeff-os/branding";
+import { ProjectCommandStrip } from "@/components/journey/ProjectCommandStrip";
 
 const easyNav = [
   { href: "/easy", label: "Start", icon: "◉" },
@@ -30,8 +32,8 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
               ◆
             </div>
             <div>
-              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">Jeff OS</p>
-              <p className="text-sm font-semibold text-zinc-200">Jeff Mission Control</p>
+              <p className="text-sm font-semibold text-zinc-100">{JEFF_OS_NAME}</p>
+              <p className="text-[10px] text-zinc-600">Projects · plans · fixes</p>
             </div>
           </div>
 
@@ -71,6 +73,8 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto max-w-3xl px-4 pb-3">
           <ExperiencePicker compact />
         </div>
+
+        {!isNewWizard && state.projects.length > 0 && <ProjectCommandStrip mode="easy" />}
       </header>
 
       <EasyOnlineAccess compact />

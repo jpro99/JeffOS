@@ -1,5 +1,6 @@
 import type { MissionControlState, Project } from "@/lib/types";
-import { resolveGodBotRelativePath } from "@/lib/command-center/paths";
+import { resolveGodBotRelativePath } from "@/lib/command-center/doc-paths";
+import { standardDocsReadBlock } from "@/lib/jeff-os/branding";
 import { suggestProjectFolder } from "@/lib/mission/build-prerequisites";
 
 export type PasteIssueKind =
@@ -161,9 +162,7 @@ Summary: ${analysis.summary}
 ═══════════════════════════════════════
 CONTROL TOWER — read first
 ═══════════════════════════════════════
-1. AI-COMMAND-CENTER/CONTROL_TOWER.md
-2. AI-COMMAND-CENTER/PROJECT_INDEX.md
-3. AI-COMMAND-CENTER/${godBotRel}
+${standardDocsReadBlock(godBotRel)}
 
 Repo: ${repo}
 Voice: ${caveman ? "CAVEman — short, direct" : "normal"}

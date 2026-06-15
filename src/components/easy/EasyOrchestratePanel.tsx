@@ -11,7 +11,6 @@ import {
 import { suggestIntegrations } from "@/lib/orchestration/integrations";
 import { persistApprovedBuildPrompt } from "@/lib/mission/command-session";
 import { CursorBuildPromptPanel } from "@/components/shared/CursorBuildPromptPanel";
-import { ProjectFolderBanner } from "@/components/shared/ProjectFolderBanner";
 import { cn, copyToClipboard } from "@/lib/utils";
 
 export function EasyOrchestratePanel({
@@ -125,8 +124,6 @@ export function EasyOrchestratePanel({
           Status labels like &quot;Building&quot; here are a checklist — not live compile.
         </p>
       </div>
-
-      <ProjectFolderBanner project={live} />
 
       <div className="flex flex-wrap items-center gap-2">
         <select

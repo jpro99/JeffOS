@@ -32,6 +32,15 @@ export function PasteFixPanel({
     if (initialPaste?.trim()) setPaste(initialPaste);
   }, [initialPaste]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const text = (e as CustomEvent<string>).detail;
+      if (typeof text === "string" && text.trim()) setPaste(text);
+    };
+    window.addEventListener("jeff-set-paste-fix", handler);
+    return () => window.removeEventListener("jeff-set-paste-fix", handler);
+  }, []);
+
   const runAnalyze = useCallback(async () => {
     if (!paste.trim()) {
       setMsg("Paste terminal output, build errors, or a stack trace first");
@@ -72,7 +81,7 @@ export function PasteFixPanel({
     >
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-wider text-rose-300/90">
-          Paste &amp; fix — Command Center
+          Paste &amp; fix
         </p>
         <p className="mt-1 text-sm text-zinc-400">
           Paste anything — build log, TypeScript error, 404, git fail. Jeff OS reads it, tells you{" "}

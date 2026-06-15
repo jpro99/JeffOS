@@ -5,7 +5,7 @@ import type { FolderScan } from "@/lib/project-scan/analyze";
 import type { Project } from "@/lib/types";
 import type { VerifyReport } from "@/lib/project-scan/sync-verify";
 import { cn } from "@/lib/utils";
-
+import { JEFF_OS_DOCS_LABEL, JEFF_OS_DOCS_REL } from "@/lib/jeff-os/branding";
 import { isJeffOsProject, JEFF_OS_GITHUB, JEFF_OS_PROJECT_ID } from "@/lib/projects/jeff-os";
 
 export { JEFF_OS_GITHUB, JEFF_OS_PROJECT_ID, isJeffOsProject };
@@ -68,7 +68,8 @@ export function EasySelfBuildBanner({
           Code:{" "}
           <span className="font-mono text-[11px] text-violet-200">{project.path}</span>
           <span className="text-zinc-600"> · Docs: </span>
-          <span className="font-mono text-[11px] text-zinc-500">AI-COMMAND-CENTER</span>
+          <span className="font-mono text-[11px] text-zinc-500">{JEFF_OS_DOCS_REL}/</span>
+          <span className="text-zinc-600"> ({JEFF_OS_DOCS_LABEL})</span>
         </p>
       </div>
 

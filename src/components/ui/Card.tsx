@@ -28,5 +28,5 @@ export function CardTitle({ children, className }: { children: React.ReactNode; 
 }
 
 export function CardDescription({ children }: { children: React.ReactNode }) {
-  return <p className="mt-1 text-sm text-zinc-500">{children}</p>;
+  return <div className="mt-1 text-sm text-zinc-500">{children}</div>;
 }

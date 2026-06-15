@@ -16,7 +16,7 @@ import {
   formatOneDaySprintBlock,
   isOneDaySprintIntent,
 } from "@/lib/mission/portfolio-pulse";
-import { resolveGodBotRelativePath } from "@/lib/command-center/paths";
+import { resolveGodBotRelativePath } from "@/lib/command-center/doc-paths";
 import type { MissionControlState, Project } from "@/lib/types";
 
 export type BuilderRoute = "fix" | "gaps" | "ship" | "god" | "mission";
@@ -137,7 +137,7 @@ PRODUCT SPEC — ship these in jeff-mission-control
 8. **Portfolio pulse** — EasyPortfolioPulse tracks all projects, verify, backlog
 9. **One-day sprint** — God/Builder prompts compress bots to ship in one day not weeks
 
-Read: AI-COMMAND-CENTER/CONTROL_TOWER.md, projects/jeff-os.md
+Read: docs/command-center/CONTROL_TOWER.md, projects/jeff-os.md
 Repo: ${project.path}
 Voice: ${caveman ? "CAVEman" : "normal"}
 

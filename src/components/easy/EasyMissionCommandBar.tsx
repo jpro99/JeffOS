@@ -8,6 +8,7 @@ import { summarizeIntent } from "@/lib/mission/intent";
 import { createSpeechRecognitionAdapter } from "@/lib/voice/recognition";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { cn, copyToClipboard } from "@/lib/utils";
+import { JEFF_OS_NAME } from "@/lib/jeff-os/branding";
 
 export function EasyMissionCommandBar() {
   const { state, updateProject, switchProject, openWorkspace, addActivity } = useMissionControl();
@@ -132,7 +133,7 @@ export function EasyMissionCommandBar() {
                 : "bg-teal-500/20 text-teal-200 ring-1 ring-teal-500/30 hover:bg-teal-500/30",
             )}
           >
-            Command Mission Control
+            Command {JEFF_OS_NAME}
           </button>
           <button
             type="button"

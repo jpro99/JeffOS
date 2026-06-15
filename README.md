@@ -1,94 +1,52 @@
 # Jeff OS
 
-Project operating environment for Jeff — status, next steps, errors, security, God Mode.
+One app. One name. Everything lives here.
 
-**v1 Mission Control** — local-first. Cursor = home base. Routes best interface, bot, model per task.
+Project operating environment — status, next steps, errors, fixes, God Mode.
 
-## Run
+## Run Jeff OS
 
 ```powershell
 cd "C:\Projects\Project Command\jeff-mission-control"
 npm run dev
 ```
 
-Open http://localhost:3000
+Open http://localhost:3000/easy
 
-## Self-build (dogfood)
+## What lives where
 
-Jeff OS can manage itself:
+| Thing | Where |
+|-------|--------|
+| **Jeff OS** (the app) | This folder — `jeff-mission-control` |
+| **Jeff OS docs** (God Bots, project index) | `docs/command-center/` inside this repo |
+| **Your other apps** (Nurse Practitioner Study, etc.) | Their own folders on `C:\Projects\` — managed from **Projects** in Jeff OS |
+
+The parent folder `C:\Projects\Project Command` is just a container on your PC. You only need **Jeff OS** day to day.
+
+Legacy copy at `../AI-COMMAND-CENTER/` still works as fallback until you delete it.
+
+## Self-build
 
 1. Easy Mode → **Projects → Jeff OS**
-2. **Self-build mode** banner — edit, verify, gaps, ship
-3. **Rescan + verify build** — runs real `npm run build` on this repo
-
-Code: this repo · Docs: `../AI-COMMAND-CENTER/` (sibling folder on Jeff's machine)
+2. Self-build banner → verify, gaps, ship
+3. **Rescan + verify build** runs real `npm run build` on this repo
 
 ## GitHub
 
-**Repo:** https://github.com/jpro99/JeffOS
-
-```powershell
-git remote -v   # should point at JeffOS
-git push origin main
-```
-
-## CI
-
-Workflow: `.github/workflows/ci.yml`
-
-On every push to `main`: `npm ci` → `npm run build` → `npm run lint`
-
-## Deploy (optional Vercel)
-
-**Auto-deploy:** Connect Vercel to GitHub once → every `git push origin main` rebuilds the live site (~1–2 min).
-
-1. Vercel → **Import** → `jpro99/JeffOS`
-2. **Root Directory:** `.` (repo root)
-3. Framework: Next.js (auto from `vercel.json`)
-4. Grant GitHub permissions when Vercel asks
-5. After code changes, from this folder:
+https://github.com/jpro99/JeffOS
 
 ```powershell
 npm run push-live
-```
-
-That runs build → commit → push. Vercel deploys automatically.
-
-Optional **Deploy Hook** (instant redeploy without new commit): Vercel → Project → Settings → Git → Deploy Hooks → add env `VERCEL_DEPLOY_HOOK_URL` in Vercel → use **Redeploy now** in Easy Mode Go Live section.
-
-Open **`https://your-app.vercel.app/easy`** on phone or any browser.
-
-Optional env for custom domain:
-
-```
-NEXT_PUBLIC_APP_URL=https://your-domain.com
-```
-
-Local link:
-
-```powershell
-npx vercel link
 ```
 
 ## What you get
 
 | Area | What |
 |------|------|
-| **Easy Mode** | Builder Hub, verify build, gap/fix prompts, ship panel |
-| **Project workspace** | Operating room per project — health, next action, errors |
-| **Command Center tab** | Edit God Bot markdown in `AI-COMMAND-CENTER` |
-| **Voice control** | Push/tap to talk — routes commands |
-
-## Pages
-
-Home · Easy Mode · Projects · Classic workspace · Bots · Tasks · Settings
-
-## Data
-
-`localStorage` key: `jeff-mission-control-v9`
-
-Links to `AI-COMMAND-CENTER/` for God Bot prompt paths.
+| **Easy Mode** | Builder Hub, buttons, paste & fix, local terminal |
+| **Project workspace** | Health, next action, Docs tab |
+| **Docs tab** | Edit God Bot markdown in `docs/command-center/` |
 
 ---
 
-Jeff OS v1. Caveman default. Operator-grade calm.
+Jeff OS v1. Caveman default.

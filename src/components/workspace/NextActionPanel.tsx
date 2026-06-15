@@ -56,7 +56,9 @@ export function NextActionPanel({ project }: { project: Project }) {
         compact
       />
 
-      {copied && <p className="text-xs text-teal-500">Prompt copied — paste in Cursor</p>}
+      {copied && (
+        <p className="text-xs text-teal-500">Action guide opened — follow the steps below the buttons</p>
+      )}
     </Card>
   );
 }

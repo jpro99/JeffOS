@@ -1,6 +1,7 @@
 import type { BotDefinition, MissionControlState, Project } from "@/lib/types";
 import { botPhaseLabel } from "@/lib/ui/experience";
-import { resolveGodBotRelativePath } from "@/lib/command-center/paths";
+import { resolveGodBotRelativePath } from "@/lib/command-center/doc-paths";
+import { formatDocsRead, standardDocsReadBlock } from "@/lib/jeff-os/branding";
 
 const WORKER_RULES = `Rules:
 - Minimal diff. Match repo conventions.
@@ -43,9 +44,7 @@ export function buildMissionBundle(
 Jeff wants: ${intent.trim() || orch?.scope.pitch || project.description}
 
 ## Boot (read once)
-1. AI-COMMAND-CENTER/CONTROL_TOWER.md
-2. AI-COMMAND-CENTER/PROJECT_INDEX.md
-3. AI-COMMAND-CENTER/${godBot}
+${standardDocsReadBlock(godBot)}
 4. Repo README.md + AGENTS.md if exist
 5. Open repo: ${project.path ?? "see PROJECT_INDEX"}
 
@@ -74,7 +73,7 @@ ${features.map((f) => `- ${f.name}: ${f.description}`).join("\n") || "- (none ye
 
   if (steps.length === 0) {
     steps.push(`### Step 1 — God Bot
-Read AI-COMMAND-CENTER/${godBot}
+${formatDocsRead(godBot)}
 Jeff wants: ${intent.trim() || "continue project"}
 ${WORKER_RULES}
 `);

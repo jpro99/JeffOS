@@ -11,13 +11,15 @@ import {
 import { DEFAULT_PROJECTS_ROOT } from "@/lib/discovery/catalog";
 import { resolveProjectPath } from "@/lib/mission/project-location";
 import { useMissionControl } from "@/lib/store/context";
+import { useFolderSync } from "@/lib/hooks/use-folder-sync";
 import { cn, copyToClipboard } from "@/lib/utils";
 
 export function ProjectFolderBanner({ project }: { project: Project }) {
   const { state, updateProject } = useMissionControl();
+  const { status: diskStatus, checking, recheck } = useFolderSync(project);
   const pre = getBuildPrerequisites(project);
   const suggested = suggestProjectFolder(project);
-  const displayPath = project.path?.trim() || suggested;
+  const displayPath = project.path?.trim() || diskStatus?.path || suggested;
 
   const [editing, setEditing] = useState(false);
   const [location, setLocation] = useState<ProjectLocationValue>(() => ({
@@ -26,19 +28,35 @@ export function ProjectFolderBanner({ project }: { project: Project }) {
   }));
   const [msg, setMsg] = useState<string | null>(null);
 
+  const onDisk = Boolean(diskStatus?.exists || project.pathExists === true);
+
   const status = useMemo(() => {
-    if (project.path?.trim() && project.pathExists !== false) {
+    if (checking && !diskStatus) {
       return {
-        label: "Folder on your PC — Cursor builds files here",
+        label: "Checking folder on disk…",
+        tone: "warn" as const,
+        who: "Jeff OS looks at your PC so it knows if Cursor already created files here.",
+      };
+    }
+    if (onDisk) {
+      const bits: string[] = [];
+      if (diskStatus?.topLevelCount) {
+        bits.push(`${diskStatus.topLevelCount} item${diskStatus.topLevelCount === 1 ? "" : "s"}`);
+      }
+      if (diskStatus?.isGitRepo) bits.push("git repo");
+      if (diskStatus?.hasPackageJson) bits.push("package.json");
+      const detail = bits.length ? ` (${bits.join(", ")})` : "";
+      return {
+        label: `Folder on your PC${detail} — Cursor builds files here`,
         tone: "ready" as const,
-        who: "Cursor creates code inside this folder when you paste the prompt.",
+        who: diskStatus?.message ?? "Path matches a real folder. Paste prompts in Cursor on this path.",
       };
     }
     if (project.path?.trim()) {
       return {
-        label: "Path set — folder not created yet",
+        label: "Path set — folder not found on disk yet",
         tone: "warn" as const,
-        who: "Jeff OS or you create the empty folder; Cursor fills it when you paste.",
+        who: "Create the folder below, or paste in Cursor — it may scaffold for you. Click Re-check after Cursor writes files.",
       };
     }
     return {
@@ -46,7 +64,7 @@ export function ProjectFolderBanner({ project }: { project: Project }) {
       tone: "warn" as const,
       who: "Set path below, or Create folder now (localhost). Cursor scaffolds if you paste without a folder.",
     };
-  }, [project.path, project.pathExists]);
+  }, [checking, diskStatus, onDisk, project.path]);
 
   const savePath = () => {
     const path = resolveProjectPath(
@@ -54,16 +72,22 @@ export function ProjectFolderBanner({ project }: { project: Project }) {
       project.name,
       location.targetPath || undefined,
     );
-    updateProject({ ...project, path, pathExists: false });
+    updateProject({ ...project, path });
     setEditing(false);
-    setMsg(`Saved folder path: ${path}`);
+    setMsg(`Saved folder path: ${path} — checking disk…`);
+    void recheck().then((data) => {
+      if (data?.exists) setMsg(`Folder found on disk: ${path}`);
+    });
   };
 
   const createFolder = async () => {
-    const path = project.path?.trim() || resolveProjectPath(location.parentFolder, project.name, location.targetPath || undefined);
+    const path =
+      project.path?.trim() ||
+      resolveProjectPath(location.parentFolder, project.name, location.targetPath || undefined);
     const result = await createProjectFolderOnDisk(path);
     if (result.ok) {
       updateProject({ ...project, path, pathExists: true });
+      await recheck();
     }
     setMsg(result.message);
   };
@@ -94,6 +118,14 @@ export function ProjectFolderBanner({ project }: { project: Project }) {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
+            onClick={() => void recheck()}
+            disabled={checking}
+            className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-zinc-400 hover:text-zinc-200 disabled:opacity-50"
+          >
+            {checking ? "Checking…" : "Re-check disk"}
+          </button>
+          <button
+            type="button"
             onClick={() => setEditing((e) => !e)}
             className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] text-zinc-400 hover:text-zinc-200"
           >
@@ -108,13 +140,15 @@ export function ProjectFolderBanner({ project }: { project: Project }) {
               Copy PowerShell
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => void createFolder()}
-            className="rounded-full bg-teal-500/90 px-3 py-1.5 text-[10px] font-semibold text-black hover:bg-teal-400"
-          >
-            Create folder now
-          </button>
+          {!onDisk && (
+            <button
+              type="button"
+              onClick={() => void createFolder()}
+              className="rounded-full bg-teal-500/90 px-3 py-1.5 text-[10px] font-semibold text-black hover:bg-teal-400"
+            >
+              Create folder now
+            </button>
+          )}
         </div>
       </div>
 
@@ -123,11 +157,7 @@ export function ProjectFolderBanner({ project }: { project: Project }) {
 
       <ul className="mt-3 space-y-1 text-[11px] text-zinc-600">
         <li>
-          <strong className="text-zinc-500">Jeff OS</strong> — plans only (browser). Does not write code files.
-        </li>
-        <li>
-          <strong className="text-zinc-500">You / Jeff OS localhost</strong> — can create the empty folder (
-          button above).
+          <strong className="text-zinc-500">Jeff OS</strong> — plans only (browser). Re-checks disk on load.
         </li>
         <li>
           <strong className="text-zinc-500">Cursor</strong> — builds all code when you paste the prompt below.

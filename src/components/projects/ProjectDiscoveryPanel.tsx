@@ -43,7 +43,7 @@ export function ProjectDiscoveryPanel({ compact }: { compact?: boolean }) {
           <p className="text-sm font-medium text-zinc-100">Project discovery</p>
           <p className="mt-1 max-w-xl text-sm text-zinc-500">
             Scans <code className="text-teal-700">C:\Projects</code> and{" "}
-            <code className="text-teal-700">C:\vercel generator</code>. Matches Command Center catalog — Bankruptcy,
+            <code className="text-teal-700">C:\vercel generator</code>. Matches Jeff OS catalog — Bankruptcy,
             Takeoff, DunningGuard, Kepi Travel, Edgar, and more.
           </p>
         </div>

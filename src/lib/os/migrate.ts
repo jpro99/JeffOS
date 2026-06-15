@@ -3,7 +3,7 @@ import { uid } from "@/lib/utils";
 import { attachOps } from "@/lib/seed/project-ops";
 import { attachConnections } from "@/lib/connections/helpers";
 import { attachOrchestration } from "@/lib/orchestration/defaults";
-import { enrichProjectGodBotFile } from "@/lib/command-center/paths";
+import { enrichProjectGodBotFile } from "@/lib/command-center/doc-paths";
 import type { ActivityEntry, BotDefinition, MissionControlState, Project, WorkspaceState } from "@/lib/types";
 
 function dedupeActivityIds(activity: ActivityEntry[]): ActivityEntry[] {

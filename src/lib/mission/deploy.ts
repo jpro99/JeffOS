@@ -1,6 +1,7 @@
 import type { GitStatusSnapshot } from "@/lib/project-scan/git-status";
 import type { MissionControlState, Project } from "@/lib/types";
-import { resolveGodBotRelativePath } from "@/lib/command-center/paths";
+import { resolveGodBotRelativePath } from "@/lib/command-center/doc-paths";
+import { formatDocsRead } from "@/lib/jeff-os/branding";
 
 export type ShipAction = "github-push" | "vercel-ship" | "full-ship";
 
@@ -17,7 +18,7 @@ function shipIntro(project: Project, state: MissionControlState): string {
     state.settings.jeffMode === "caveman";
   return `# SHIP — ${project.name}
 Repo: ${project.path ?? "CONFIRM PATH"}
-God Bot: AI-COMMAND-CENTER/${godBot}
+God Bot: ${formatDocsRead(godBot)}
 Voice: ${caveman ? "CAVEman — short, direct" : "normal"}
 
 Jeff OS does NOT auto-push. You run this in Cursor (or terminal).

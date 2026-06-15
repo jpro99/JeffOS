@@ -3,7 +3,7 @@ import path from "path";
 import os from "os";
 import { isAllowedProjectPath } from "@/lib/project-scan/allowed-paths";
 
-function isAllowedCreatePath(target: string): boolean {
+export function isAllowedCreatePath(target: string): boolean {
   if (isAllowedProjectPath(target)) return true;
   const normalized = path.normalize(target).toLowerCase();
   const desktop = path.normalize(path.join(os.homedir(), "Desktop")).toLowerCase();

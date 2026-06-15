@@ -630,7 +630,7 @@ export const PROJECT_OPS: Record<string, ProjectOps> = {
     notes: "",
   },
   "proj-jeff-os": {
-    plainSummary: "Jeff Mission Control — Easy Mode dashboard. Dogfood: build and verify this app while using it.",
+    plainSummary: "Jeff OS — Easy Mode dashboard. Dogfood: build and verify this app while using it.",
     readinessLevel: "partially-working",
     buildPhase: "Self-build + honest gaps",
     percentComplete: 72,
@@ -642,7 +642,7 @@ export const PROJECT_OPS: Record<string, ProjectOps> = {
       "Folder scan + brief",
       "Verify build (npm run build)",
       "Error fix + gap fix prompts",
-      "Command Center doc tab",
+      "Docs tab",
     ],
     blocked: [],
     whatsNext: [],
@@ -676,7 +676,7 @@ export const PROJECT_OPS: Record<string, ProjectOps> = {
         leverage: "high",
       },
     ],
-    notes: "App: jeff-mission-control. Docs: AI-COMMAND-CENTER.",
+    notes: "App: jeff-mission-control. Docs: docs/command-center inside repo.",
   },
 };
 

@@ -10,6 +10,7 @@ import { ActiveContextRail } from "@/components/os/ActiveContextRail";
 import { Dock } from "@/components/os/Dock";
 import { RouteStrip } from "@/components/os/RouteStrip";
 import { WorkspaceTabs } from "@/components/os/WorkspaceTabs";
+import { ProjectCommandStrip } from "@/components/journey/ProjectCommandStrip";
 import { ProjectCostBadge } from "@/components/workspace/ProjectCostBadge";
 import { VoiceMicButton } from "@/components/voice/VoiceMicButton";
 import { useVoice } from "@/components/voice/VoiceProvider";
@@ -172,6 +173,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           </header>
+
+          <ProjectCommandStrip mode="classic" />
 
           <WorkspaceTabs />
 

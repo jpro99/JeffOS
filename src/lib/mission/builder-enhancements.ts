@@ -102,7 +102,7 @@ PLUS — MAKE IT BETTER (Jeff OS God Mode)
 After you ship what Jeff asked:
 1. Tell Jeff: "You could also add this — great idea:" with 2–3 concrete upgrades BEYOND the request
 2. Ask once: "Want me to add any of these?" — no silent scope creep
-3. If Jeff says yes in Mission Control → he uses **Add on →** and you continue the same build
+3. If Jeff says yes in Jeff OS → he uses **Add on →** and you continue the same build
 
 Seed ideas (use or beat these):
 ${seeds.map((s, i) => `${i + 1}. ${s}`).join("\n")}
