@@ -3,7 +3,8 @@
 import type { Project } from "@/lib/types";
 import type { ConnectionInventoryItem } from "@/lib/connections/inventory";
 import { CATEGORY_LABELS, inventorySummary } from "@/lib/connections/inventory";
-import { markIntegrationConnected } from "@/lib/orchestration/integrations";
+import { markIntegrationConnected, suggestIntegrations } from "@/lib/orchestration/integrations";
+import { TryAndRunScorePanel } from "@/components/connections/TryAndRunScorePanel";
 import { useMissionControl } from "@/lib/store/context";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -113,6 +114,23 @@ export function EasyConnectionsInventory({
 
   return (
     <div className="space-y-4">
+      <TryAndRunScorePanel
+        project={project}
+        inventory={inventory}
+        onNeedScan={() => {
+          const suggestions = suggestIntegrations(project);
+          if (suggestions.length > 0 && project.orchestration) {
+            updateProject({
+              ...project,
+              orchestration: {
+                ...project.orchestration,
+                integrationSuggestions: suggestions,
+              },
+            });
+          }
+        }}
+      />
+
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-xs text-zinc-500">
         <strong className="text-zinc-400">Can it truly see setup?</strong> Free scan checks: local{" "}
         <code className="text-zinc-600">.env</code> keys,{" "}

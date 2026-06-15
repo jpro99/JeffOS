@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { JEFF_OS_GITHUB } from "@/components/easy/EasySelfBuildBanner";
+import { PushLivePanel } from "@/components/deploy/PushLivePanel";
+import { AUTO_DEPLOY_STEPS, JEFF_OS_VERCEL_HINT } from "@/lib/deploy/auto-deploy";
 import {
   clientPublicOrigin,
   easyModeUrl,
@@ -36,6 +38,12 @@ export function EasyOnlineAccess({ compact = false }: { compact?: boolean }) {
   const [msg, setMsg] = useState<string | null>(null);
 
   const savedUrl = state.settings.productionUrl;
+  const activeProject = useMemo(
+    () =>
+      state.projects.find((p) => p.id === state.workspace.activeProjectId) ??
+      state.projects[0],
+    [state.projects, state.workspace.activeProjectId],
+  );
   const displayUrl = useMemo(
     () => resolveDisplayUrl(savedUrl, liveOrigin),
     [savedUrl, liveOrigin],
@@ -66,6 +74,21 @@ export function EasyOnlineAccess({ compact = false }: { compact?: boolean }) {
     if (!easyUrl) return;
     const ok = await copyToClipboard(easyUrl);
     setMsg(ok ? "Copied — open on phone" : "Copy failed");
+  };
+
+  const triggerRedeploy = async () => {
+    setMsg(null);
+    try {
+      const res = await fetch("/api/deploy/trigger", { method: "POST" });
+      const data = (await res.json()) as { ok: boolean; message?: string; error?: string };
+      if (data.ok) {
+        setMsg(data.message ?? "Redeploy started — refresh in ~1 min");
+      } else {
+        setMsg(data.error ?? "Redeploy not configured — use push-live instead");
+      }
+    } catch {
+      setMsg("Redeploy failed — run npm run push-live locally");
+    }
   };
 
   const isOnline = Boolean(liveOrigin);
@@ -113,6 +136,46 @@ export function EasyOnlineAccess({ compact = false }: { compact?: boolean }) {
         <ConnDot ok label="GitHub JeffOS" />
         <ConnDot ok={vercelDeployed || Boolean(savedUrl)} label="Vercel deploy" />
         <ConnDot ok={isOnline || Boolean(savedUrl)} label="Public URL" />
+        <ConnDot ok label="Auto on push" />
+      </div>
+
+      <div className="mt-4 rounded-xl border border-indigo-500/25 bg-indigo-500/[0.06] p-4">
+        <p className="text-sm font-semibold text-indigo-100">Automatic go-live</p>
+        <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+          Jeff OS in the browser <strong className="text-zinc-400">cannot</strong> push git for you (no
+          permissions). One-time: link Vercel ↔ GitHub per repo. After that, every{" "}
+          <strong className="text-zinc-400">push to main</strong> rebuilds that project&apos;s site (~1–2
+          min). Push follows your <strong className="text-zinc-400">active project folder</strong> below.
+        </p>
+        <ol className="mt-3 space-y-2">
+          {AUTO_DEPLOY_STEPS.map((s) => (
+            <li key={s.step} className="flex gap-2 text-xs text-zinc-400">
+              <span className="font-semibold text-indigo-400">{s.step}.</span>
+              <span>
+                <strong className="text-zinc-300">{s.title}</strong> — {s.body}
+              </span>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-4">
+          <p className="mb-2 text-[10px] uppercase text-zinc-600">
+            Active project — {activeProject?.name ?? "none selected"}
+          </p>
+          <PushLivePanel project={activeProject} compact />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void triggerRedeploy()}
+            className="rounded-full border border-white/15 px-4 py-2 text-xs text-zinc-300 hover:bg-white/[0.05]"
+            title="Needs VERCEL_DEPLOY_HOOK_URL in Vercel env — optional"
+          >
+            Redeploy now (hook)
+          </button>
+        </div>
+        <p className="mt-2 text-[10px] text-zinc-600">
+          Jeff OS example site: <span className="font-mono">{JEFF_OS_VERCEL_HINT}</span>
+        </p>
       </div>
 
       {isOnline && easyUrl ? (

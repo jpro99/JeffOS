@@ -11,9 +11,11 @@ import {
 } from "@/lib/orchestration/plan";
 import { suggestIntegrations } from "@/lib/orchestration/integrations";
 import { featuresFromIntent } from "@/lib/mission/intent";
-import { buildMissionBundle, flattenMissionSteps } from "@/lib/mission/bundle";
+import { flattenMissionSteps } from "@/lib/mission/bundle";
+import { persistApprovedBuildPrompt } from "@/lib/mission/command-session";
 import { EasyProjectBrief } from "@/components/easy/EasyProjectBrief";
 import { EasyShipPanel } from "@/components/easy/EasyShipPanel";
+import { CursorBuildPromptPanel } from "@/components/shared/CursorBuildPromptPanel";
 import { botPhaseLabel } from "@/lib/ui/experience";
 import { cn } from "@/lib/utils";
 
@@ -90,15 +92,18 @@ export function EasyProjectMission({ project }: { project: Project }) {
     if (!live.orchestration?.plan) updateProject(base);
 
     const approved = approvePlan(base, state.bots);
-    const bundle = buildMissionBundle(approved, intent, state);
+    const withPrompt = persistApprovedBuildPrompt(approved, intent, state);
+    const fullPrompt = withPrompt.ops.commandSession?.lastPrompt ?? "";
     try {
-      await navigator.clipboard.writeText(bundle);
-      updateProject(approved);
+      await navigator.clipboard.writeText(fullPrompt);
+      updateProject(withPrompt);
       setPhase("launched");
       setMsg("Copied! Paste into Cursor agent chat.");
       addActivity(`Easy Mode: launched mission — ${project.name}`, "routing", project.id);
     } catch {
-      setMsg("Could not copy — run Plan Mission first");
+      setMsg("Prompt is in the box below — select all and copy.");
+      updateProject(withPrompt);
+      setPhase("launched");
     }
   };
 
@@ -239,16 +244,24 @@ export function EasyProjectMission({ project }: { project: Project }) {
           Launch in Cursor
         </p>
         <p className="text-sm text-zinc-400">
-          One copy — includes God Bot paths, worker steps, caveman rules. Paste in Cursor chat.
+          Copy the prompt below → paste in Cursor on your project folder. That is where code gets built.
         </p>
-        <button
-          type="button"
-          onClick={() => void launchMission()}
-          disabled={!orch?.plan && !intent.trim()}
-          className="rounded-full bg-teal-500 px-8 py-3 text-sm font-semibold text-black hover:bg-teal-400 disabled:opacity-40"
-        >
-          Launch in Cursor
-        </button>
+
+        {(orch?.plan?.approved || phase === "launched") && (
+          <CursorBuildPromptPanel project={live} state={state} intent={intent} />
+        )}
+
+        {!orch?.plan?.approved && (
+          <button
+            type="button"
+            onClick={() => void launchMission()}
+            disabled={!orch?.plan && !intent.trim()}
+            className="rounded-full bg-teal-500 px-8 py-3 text-sm font-semibold text-black hover:bg-teal-400 disabled:opacity-40"
+          >
+            Plan + show Cursor prompt
+          </button>
+        )}
+
         {phase === "launched" && (
           <p className="text-xs text-teal-400">Mission active — check off steps below as agent finishes.</p>
         )}

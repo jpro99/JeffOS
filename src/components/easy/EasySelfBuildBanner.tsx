@@ -6,12 +6,9 @@ import type { Project } from "@/lib/types";
 import type { VerifyReport } from "@/lib/project-scan/sync-verify";
 import { cn } from "@/lib/utils";
 
-export const JEFF_OS_PROJECT_ID = "proj-jeff-os";
-export const JEFF_OS_GITHUB = "https://github.com/jpro99/JeffOS";
+import { isJeffOsProject, JEFF_OS_GITHUB, JEFF_OS_PROJECT_ID } from "@/lib/projects/jeff-os";
 
-export function isJeffOsProject(project: Pick<Project, "id">): boolean {
-  return project.id === JEFF_OS_PROJECT_ID;
-}
+export { JEFF_OS_GITHUB, JEFF_OS_PROJECT_ID, isJeffOsProject };
 
 function StatusPill({ ok, label }: { ok: boolean; label: string }) {
   return (

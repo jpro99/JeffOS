@@ -13,6 +13,8 @@ import { useMissionControl } from "@/lib/store/context";
 import { brainstormFeatures } from "@/lib/orchestration/brainstorm";
 import { createFeature } from "@/lib/orchestration/defaults";
 import { suggestIntegrations, markIntegrationConnected } from "@/lib/orchestration/integrations";
+import { persistApprovedBuildPrompt } from "@/lib/mission/command-session";
+import { CursorBuildPromptPanel } from "@/components/shared/CursorBuildPromptPanel";
 import {
   approvePlan,
   generateOrchestrationPlan,
@@ -29,6 +31,7 @@ import { Card, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { FeatureDetailDrawer } from "@/components/scope/FeatureDetailDrawer";
+import { TryAndRunScorePanel } from "@/components/connections/TryAndRunScorePanel";
 
 const PLATFORMS = ["web", "mobile", "desktop", "api"];
 
@@ -41,6 +44,7 @@ export function OrchestratorHub({ project }: { project: Project }) {
   const [costPattern, setCostPattern] = useState<CostPattern>(orch.plan?.costPattern ?? "mixed");
   const [newFeat, setNewFeat] = useState({ name: "", description: "" });
   const [apiScanMsg, setApiScanMsg] = useState<string | null>(null);
+  const [launchMsg, setLaunchMsg] = useState<string | null>(null);
 
   const save = (next: Project) => {
     updateProject({ ...next, lastUpdated: new Date().toISOString() });
@@ -62,6 +66,7 @@ export function OrchestratorHub({ project }: { project: Project }) {
         : `Found ${suggestions.length} recommended API${suggestions.length === 1 ? "" : "s"} — scroll down to review.`,
     );
     addActivity(`API scan: ${suggestions.length} suggestions for ${current.name}`, "project", current.id);
+    return suggestions;
   };
 
   const updateScope = (field: string, value: string | string[]) => {
@@ -121,8 +126,12 @@ export function OrchestratorHub({ project }: { project: Project }) {
 
   const onApprove = () => {
     if (!orch.plan) return;
-    save(approvePlan(project, state.bots));
-    addActivity("Orchestration plan approved — building", "project", project.id);
+    const intent =
+      orch.scope.pitch || live.description || live.goals.join("; ") || `Build ${live.name}`;
+    const approved = approvePlan(live, state.bots);
+    save(persistApprovedBuildPrompt(approved, intent, state));
+    addActivity("Orchestration plan approved — Cursor prompt ready", "project", project.id);
+    setLaunchMsg("Prompt ready below — copy the whole box → paste in Cursor.");
   };
 
   const onRerun = () => {
@@ -156,6 +165,18 @@ export function OrchestratorHub({ project }: { project: Project }) {
           ok={stats.planApproved}
         />
       </div>
+
+      {orch.plan?.approved && (
+        <Card className="space-y-3 border-teal-500/30 bg-teal-500/[0.04]">
+          <CardTitle>Your Cursor prompt — copy &amp; paste</CardTitle>
+          <p className="text-xs text-zinc-500">
+            Jeff OS does not build code here. This box is what you paste into Cursor so bots actually
+            build MVP, auth, data model, etc.
+          </p>
+          <CursorBuildPromptPanel project={live} state={state} />
+          {launchMsg && <p className="text-xs text-teal-400">{launchMsg}</p>}
+        </Card>
+      )}
 
       {/* Scope */}
       <Card className="space-y-4">
@@ -430,7 +451,15 @@ export function OrchestratorHub({ project }: { project: Project }) {
           </div>
         )}
 
-        {/* Pipeline view for approved plans */}
+        {orch.plan?.approved && (
+          <div className="space-y-3 rounded-xl border border-white/[0.06] bg-black/20 p-4">
+            <p className="text-xs text-zinc-500">
+              Feature pipelines below = checklist. Real code runs in Cursor after you paste the prompt
+              at the top of this page.
+            </p>
+          </div>
+        )}
+
         {orch.plan?.approved && orch.features.some((f) => f.assignedSteps.length) && (
           <div className="space-y-3">
             <p className="text-[10px] uppercase text-zinc-600">Feature pipelines</p>
@@ -473,6 +502,12 @@ export function OrchestratorHub({ project }: { project: Project }) {
         {apiScanMsg && (
           <p className="text-sm text-teal-400">{apiScanMsg}</p>
         )}
+
+        <TryAndRunScorePanel
+          project={live}
+          onNeedScan={runApiScan}
+        />
+
         {orch.integrationSuggestions.length === 0 ? (
           <p className="text-sm text-zinc-600">
             Click Scan — reads your pitch, goals, platforms, and features. Results appear below.

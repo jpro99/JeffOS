@@ -5,6 +5,7 @@ import type { Project } from "@/lib/types";
 import type { GitStatusSnapshot } from "@/lib/project-scan/git-status";
 import { buildShipPrompt, shipReadinessLabel, type ShipAction } from "@/lib/mission/deploy";
 import { JEFF_OS_GITHUB, isJeffOsProject } from "@/components/easy/EasySelfBuildBanner";
+import { PushLivePanel } from "@/components/deploy/PushLivePanel";
 import { useMissionControl } from "@/lib/store/context";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { cn, copyToClipboard } from "@/lib/utils";
@@ -201,6 +202,13 @@ export function EasyShipPanel({ project }: { project: Project }) {
       )}
 
       {msg && <p className="text-center text-xs text-teal-500">{msg}</p>}
+
+      <div className="border-t border-white/[0.06] pt-4">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-teal-500/80">
+          Push this folder live
+        </p>
+        <PushLivePanel project={project} git={git} compact />
+      </div>
     </section>
   );
 }

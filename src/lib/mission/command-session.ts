@@ -95,6 +95,32 @@ Jeff marks progress in Jeff OS → Rescan + verify build.
   return header + core + footer;
 }
 
+/** Save approved plan → full Cursor prompt on project (localStorage) */
+export function persistApprovedBuildPrompt(
+  approved: Project,
+  intent: string,
+  state: MissionControlState,
+): Project {
+  const trimmed = intent.trim() || approved.orchestration?.scope.pitch || approved.description || approved.name;
+  const prompt = buildCommandMissionBundle(approved, trimmed, state);
+  const flat = flattenMissionSteps(approved);
+
+  return {
+    ...approved,
+    ops: {
+      ...approved.ops,
+      commandSession: {
+        id: approved.ops.commandSession?.id ?? uid("cmd"),
+        intent: trimmed,
+        createdAt: approved.ops.commandSession?.createdAt ?? new Date().toISOString(),
+        lastPrompt: prompt,
+        stepCount: flat.length,
+        featureCount: approved.orchestration?.features.length ?? 0,
+      },
+    },
+  };
+}
+
 /** Turn plain English into planned bots + Cursor-ready prompt. */
 export function createCommandSession(
   project: Project,

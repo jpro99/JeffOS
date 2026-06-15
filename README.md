@@ -40,11 +40,23 @@ On every push to `main`: `npm ci` → `npm run build` → `npm run lint`
 
 ## Deploy (optional Vercel)
 
+**Auto-deploy:** Connect Vercel to GitHub once → every `git push origin main` rebuilds the live site (~1–2 min).
+
 1. Vercel → **Import** → `jpro99/JeffOS`
 2. **Root Directory:** `.` (repo root)
 3. Framework: Next.js (auto from `vercel.json`)
-4. Deploy — open **`https://your-app.vercel.app/easy`** on phone or any browser
-5. Optional: **Add to Home Screen** (iPhone Share menu / Android Install app)
+4. Grant GitHub permissions when Vercel asks
+5. After code changes, from this folder:
+
+```powershell
+npm run push-live
+```
+
+That runs build → commit → push. Vercel deploys automatically.
+
+Optional **Deploy Hook** (instant redeploy without new commit): Vercel → Project → Settings → Git → Deploy Hooks → add env `VERCEL_DEPLOY_HOOK_URL` in Vercel → use **Redeploy now** in Easy Mode Go Live section.
+
+Open **`https://your-app.vercel.app/easy`** on phone or any browser.
 
 Optional env for custom domain:
 
