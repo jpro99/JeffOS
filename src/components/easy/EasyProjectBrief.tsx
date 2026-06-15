@@ -73,7 +73,10 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
   const [scanMode, setScanMode] = useState<"quick" | "verify">("quick");
   const [pasteSeed, setPasteSeed] = useState("");
   const projectRef = useRef(project);
-  projectRef.current = project;
+
+  useEffect(() => {
+    projectRef.current = project;
+  }, [project]);
 
   const scrollToFix = () => {
     setFixOpen(true);
@@ -146,7 +149,10 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
   );
 
   const runScanRef = useRef(runScan);
-  runScanRef.current = runScan;
+
+  useEffect(() => {
+    runScanRef.current = runScan;
+  }, [runScan]);
 
   useEffect(() => {
     void runScanRef.current(false);
@@ -297,6 +303,7 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
       </div>
 
       <PasteFixPanel
+        key={pasteSeed || "manual-paste-fix"}
         project={project}
         initialPaste={pasteSeed || undefined}
         onRecheck={() => runScan(true)}

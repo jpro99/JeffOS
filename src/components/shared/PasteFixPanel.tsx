@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Project } from "@/lib/types";
 import type { VerifyReport } from "@/lib/project-scan/sync-verify";
 import { useMissionControl } from "@/lib/store/context";
@@ -37,10 +37,6 @@ export function PasteFixPanel({
   const [msg, setMsg] = useState<string | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const pasteRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (initialPaste?.trim()) setPaste(initialPaste);
-  }, [initialPaste]);
 
   const runAnalyze = useCallback(async () => {
     if (!paste.trim()) {
