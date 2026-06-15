@@ -209,7 +209,7 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
             className="rounded-lg border border-white/[0.08] px-3 py-1 text-xs text-zinc-500 hover:text-zinc-300"
             title="Scan folder + run npm build to check if errors are fixed"
           >
-            Rescan + verify build
+            Update / recheck build
           </button>
         </div>
       </div>
@@ -296,7 +296,14 @@ export function EasyProjectBrief({ project, onScanComplete, onFixComplete }: Eas
         ))}
       </div>
 
-      <PasteFixPanel project={project} initialPaste={pasteSeed || undefined} />
+      <PasteFixPanel
+        project={project}
+        initialPaste={pasteSeed || undefined}
+        onRecheck={() => runScan(true)}
+        rechecking={loading && scanMode === "verify"}
+        verifyReport={verifyReport}
+        nextBuildItems={brief.needsBuild}
+      />
 
       {(fixOpen ||
         missionComplete ||

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Project } from "@/lib/types";
+import type { VerifyReport } from "@/lib/project-scan/sync-verify";
 import { useMissionControl } from "@/lib/store/context";
 import {
   analyzePaste,
@@ -16,10 +17,18 @@ export function PasteFixPanel({
   project,
   compact,
   initialPaste,
+  onRecheck,
+  rechecking = false,
+  verifyReport,
+  nextBuildItems = [],
 }: {
   project: Project;
   compact?: boolean;
   initialPaste?: string;
+  onRecheck?: () => Promise<void> | void;
+  rechecking?: boolean;
+  verifyReport?: VerifyReport | null;
+  nextBuildItems?: string[];
 }) {
   const { state, addActivity } = useMissionControl();
   const [paste, setPaste] = useState(initialPaste ?? "");
@@ -27,6 +36,7 @@ export function PasteFixPanel({
   const [cursorPrompt, setCursorPrompt] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  const pasteRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (initialPaste?.trim()) setPaste(initialPaste);
@@ -62,6 +72,41 @@ export function PasteFixPanel({
     setMsg(ok ? "Commands copied" : "Select commands box and copy");
   };
 
+  const runRecheck = useCallback(async () => {
+    if (!onRecheck) return;
+    if (!project.path) {
+      setMsg("Need project folder first — import/link this app from disk so Jeff can run build");
+      return;
+    }
+
+    setMsg("Checking updates — running build on disk");
+    await onRecheck();
+  }, [onRecheck, project.path]);
+
+  const loadVerifyLog = () => {
+    if (!verifyReport?.buildLogTail) return;
+    setPaste(verifyReport.buildLogTail);
+    setAnalysis(null);
+    setCursorPrompt("");
+    setMsg("Latest build log loaded — click Get Cursor fix prompt");
+    requestAnimationFrame(() => {
+      pasteRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      pasteRef.current?.focus();
+    });
+  };
+
+  const nextProblem =
+    verifyReport && !verifyReport.canAdvance
+      ? verifyReport.stillOpenErrors[0]?.title ||
+        verifyReport.stillOpenBlockers[0] ||
+        (!verifyReport.buildPassed ? "Build still failing — load log below" : "Still blocked")
+      : null;
+  const buildNext =
+    nextBuildItems[0] ||
+    project.ops.whatsNext[0] ||
+    project.ops.nextAction?.title ||
+    "pick the next feature below";
+
   return (
     <section
       id="paste-fix-panel"
@@ -72,20 +117,29 @@ export function PasteFixPanel({
     >
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-wider text-rose-300/90">
-          Paste &amp; fix — Command Center
+          What is wrong? Paste it here
         </p>
         <p className="mt-1 text-sm text-zinc-400">
-          Paste anything — build log, TypeScript error, 404, git fail. Jeff OS reads it, tells you{" "}
-          <strong className="text-zinc-300">what to run</strong> and gives a{" "}
-          <strong className="text-zinc-300">Cursor prompt</strong> that returns real fixes.
+          Paste the exact error from your app, Cursor, terminal, or Vercel. Jeff makes the Cursor fix prompt.
+          When Cursor finishes, click <strong className="text-zinc-300">Update / recheck</strong> to get the
+          next problem or see what to build next.
         </p>
       </div>
 
+      <ol className="grid gap-2 text-xs text-zinc-500 sm:grid-cols-4">
+        {["Paste error", "Get fix prompt", "Paste in Cursor", "Update / recheck"].map((step, index) => (
+          <li key={step} className="rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2">
+            <span className="text-rose-300">{index + 1}.</span> {step}
+          </li>
+        ))}
+      </ol>
+
       <textarea
+        ref={pasteRef}
         value={paste}
         onChange={(e) => setPaste(e.target.value)}
         rows={compact ? 6 : 10}
-        placeholder={`Paste here — e.g.\n\nFailed to compile.\n./src/app/page.tsx:12:5\nType error: Property 'foo' does not exist...\n\nOr: GET /health 404\nOr: git push rejected...`}
+        placeholder={`Paste what is wrong here — e.g.\n\nI was in the app and saw: Error: Cannot read properties of undefined\n\nOr paste full build output:\nFailed to compile.\n./src/app/page.tsx:12:5\nType error: Property 'foo' does not exist...\n\nOr: GET /health 404\nOr: git push rejected...`}
         className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 font-mono text-[11px] leading-relaxed text-zinc-300 placeholder:text-zinc-700"
       />
 
@@ -95,8 +149,18 @@ export function PasteFixPanel({
           onClick={() => void runAnalyze()}
           className="rounded-full bg-rose-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-rose-400"
         >
-          Analyze → get fix
+          Get Cursor fix prompt
         </button>
+        {onRecheck && (
+          <button
+            type="button"
+            onClick={() => void runRecheck()}
+            disabled={rechecking}
+            className="rounded-full bg-emerald-500 px-6 py-2.5 text-sm font-semibold text-black hover:bg-emerald-400 disabled:opacity-50"
+          >
+            {rechecking ? "Checking updates…" : "Cursor done? Update / recheck"}
+          </button>
+        )}
         {analysis && (
           <button
             type="button"
@@ -107,6 +171,39 @@ export function PasteFixPanel({
           </button>
         )}
       </div>
+
+      {verifyReport && (
+        <div
+          className={cn(
+            "rounded-xl border px-4 py-3",
+            verifyReport.canAdvance
+              ? "border-emerald-500/30 bg-emerald-500/10"
+              : "border-amber-500/30 bg-amber-500/[0.06]",
+          )}
+        >
+          <p
+            className={cn(
+              "text-sm font-semibold",
+              verifyReport.canAdvance ? "text-emerald-300" : "text-amber-200",
+            )}
+          >
+            {verifyReport.canAdvance ? "Build passed — build next" : "Still broken — next problem"}
+          </p>
+          <p className="mt-1 text-sm text-zinc-400">
+            {verifyReport.canAdvance ? `Next: ${buildNext}` : nextProblem}
+          </p>
+          <p className="mt-1 text-xs text-zinc-500">{verifyReport.summary}</p>
+          {!verifyReport.canAdvance && verifyReport.buildLogTail && (
+            <button
+              type="button"
+              onClick={loadVerifyLog}
+              className="mt-3 rounded-full border border-amber-500/25 bg-black/20 px-4 py-2 text-xs text-amber-100 hover:border-amber-400/50"
+            >
+              Use latest build log as new error
+            </button>
+          )}
+        </div>
+      )}
 
       <div ref={resultRef}>
         {analysis && (
@@ -154,6 +251,8 @@ export function PasteFixPanel({
               <p className="text-[10px] text-zinc-600">
                 Cursor agent fixes files on disk and replies with{" "}
                 <span className="font-mono text-zinc-500">PASTE FIX DONE</span> + commands + code if needed.
+                Then come back here and click{" "}
+                <span className="font-semibold text-zinc-500">Update / recheck</span>.
               </p>
             </div>
           </div>
