@@ -70,7 +70,7 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
             {!isProjectArea && <VoiceMicButton compact />}
             {!isProjectArea && (
               <Link
-                href="/"
+                href="/classic"
                 className="rounded-full border border-white/[0.08] px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300"
               >
                 Classic view

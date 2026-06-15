@@ -53,7 +53,7 @@ export default function EasySettingsPage() {
             You are in Easy Mode
           </span>
           <Link
-            href="/"
+            href="/classic"
             className="rounded-full border border-white/10 px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200"
           >
             Open Classic view

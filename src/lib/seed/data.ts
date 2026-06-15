@@ -42,7 +42,7 @@ export const seedState: MissionControlState = {
     monthlyCostThresholdUsd: 100,
     costWarningPercent: 80,
     experienceLevel: "comfortable",
-    uiMode: "classic",
+    uiMode: "easy",
     guidedJourneyStep: 0,
     guidedJourneyComplete: false,
     guidedJourneyDismissed: false,

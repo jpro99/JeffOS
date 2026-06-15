@@ -512,7 +512,7 @@ export function EasyProjectCockpit({ project }: { project: Project }) {
 
       <p className="pb-32 text-center text-[10px] text-zinc-700">
         Need more?{" "}
-        <Link href="/" className="text-zinc-500 hover:text-zinc-400">
+        <Link href="/classic" className="text-zinc-500 hover:text-zinc-400">
           Classic view
         </Link>{" "}
         has extra tabs — Easy mode stays simple on purpose.

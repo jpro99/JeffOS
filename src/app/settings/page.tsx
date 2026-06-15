@@ -63,7 +63,7 @@ export default function SettingsPage() {
             >
               Open Easy Mode
             </a>
-            <a href="/" className="rounded-full border border-white/10 px-4 py-2 text-sm text-zinc-400">
+            <a href="/classic" className="rounded-full border border-white/10 px-4 py-2 text-sm text-zinc-400">
               Classic home
             </a>
           </div>
