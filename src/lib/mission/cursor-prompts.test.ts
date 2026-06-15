@@ -112,6 +112,8 @@ describe("cursor-prompts — add to project", () => {
     assert.doesNotMatch(prompt, /It needs to be a complete/);
     assert.match(prompt, /Run `dotnet build`/);
   });
+
+  it("small UI ask uses Builder + Test only", () => {
     const { prompt, stepCount } = buildCompactAddPrompt(
       jeffOs,
       "Change the purple Go button label to say Copy prompt",
