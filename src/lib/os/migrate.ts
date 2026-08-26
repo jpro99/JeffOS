@@ -60,6 +60,22 @@ export function ensureJeffOs(
     if (seedBot) nextBots = [seedBot, ...bots];
   }
 
+  const haveProjects = new Set(nextProjects.map((p) => p.id));
+  for (const seed of seedState.projects) {
+    if (!haveProjects.has(seed.id)) {
+      nextProjects = [...nextProjects, enrichProject(seed)];
+      haveProjects.add(seed.id);
+    }
+  }
+
+  const haveBots = new Set(nextBots.map((b) => b.id));
+  for (const seedBot of seedState.bots) {
+    if (!haveBots.has(seedBot.id)) {
+      nextBots = [...nextBots, seedBot];
+      haveBots.add(seedBot.id);
+    }
+  }
+
   return { projects: nextProjects, bots: nextBots };
 }
 
