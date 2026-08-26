@@ -530,7 +530,7 @@ export function GrokTalk() {
               className="text-slate-500 hover:text-slate-300"
               onClick={() => setRows([])}
             >
-              New chat
+            New chat
             </button>
           </div>
 
