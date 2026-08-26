@@ -210,3 +210,58 @@ button {
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }
+
+.talk-engine-picker {
+  justify-content: center;
+}
+
+.talk-engine-btn {
+  border: 1px solid #2a3c5a;
+  background: #0f1b30;
+  color: #94a3b8;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.talk-engine-btn:hover {
+  background: #16233a;
+  color: #e2e8f0;
+}
+
+.talk-engine-btn.selected {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+}
+
+.talk-source {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.talk-source-free {
+  background: rgba(52, 211, 153, 0.12);
+  color: #6ee7b7;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+
+.talk-source-paid {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fcd34d;
+  border: 1px solid rgba(251, 191, 36, 0.22);
+}
+
+.talk-source-agent {
+  background: rgba(56, 189, 248, 0.1);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+}

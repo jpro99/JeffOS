@@ -213,6 +213,8 @@ export async function runTalkStream(opts: {
   system: string;
   lane: TalkLane;
   preferLocal?: boolean;
+  /** When true (Jeff locked the engine picker), do not silently fall back to another lane. */
+  strictLane?: boolean;
   write: StreamWriter;
 }): Promise<{ reply: string; lane: TalkLane; engine: string; model: string }> {
   const write = opts.write;
@@ -224,7 +226,8 @@ export async function runTalkStream(opts: {
   write({ type: "status", text: "Reading your message…" });
 
   const tryLocalFirst =
-    opts.lane === "local" || (opts.lane === "paid" && opts.preferLocal !== false);
+    opts.lane === "local" ||
+    (!opts.strictLane && opts.lane === "paid" && opts.preferLocal !== false);
 
   if (tryLocalFirst) {
     let engine = pickEngineForLane("local");
@@ -235,7 +238,9 @@ export async function runTalkStream(opts: {
         engine = { ...engine, model, label: `Home PC (${model})` };
         try {
           const result = await streamWithEngine(engine, opts.messages, opts.system, write);
-          if (opts.lane === "local" || localAnswerLooksUsable(result.reply)) {
+          if (!opts.strictLane && opts.lane === "paid" && !localAnswerLooksUsable(result.reply)) {
+            write({ type: "status", text: "Switching to paid engine for a better answer…" });
+          } else {
             return {
               reply: result.reply,
               lane: result.lane,
@@ -243,17 +248,28 @@ export async function runTalkStream(opts: {
               model: result.engine.model,
             };
           }
-          write({ type: "status", text: "Switching to paid engine for a better answer…" });
         } catch (err) {
+          if (opts.strictLane && opts.lane === "local") {
+            throw err;
+          }
           write({
             type: "status",
             text: err instanceof Error ? err.message : "Home PC unavailable",
           });
         }
       } else if (opts.lane === "local") {
+        if (opts.strictLane) {
+          throw new Error("Home PC is off. Start Ollama or switch to Paid.");
+        }
         write({ type: "status", text: "Home PC is off — trying paid engine…" });
       }
+    } else if (opts.strictLane && opts.lane === "local") {
+      throw new Error("Home PC is not configured.");
     }
+  }
+
+  if (opts.strictLane && opts.lane === "local") {
+    throw new Error("Home PC could not answer. Check Ollama or pick Paid.");
   }
 
   const paid = resolvePaidEngine() ?? pickEngineForLane("paid");

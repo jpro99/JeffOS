@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useMissionControl } from "@/lib/store/context";
 import { TalkProjectStrip } from "@/components/easy/TalkProjectStrip";
-import { CLOUD_AGENTS_HOME, LOCAL_MODEL_PICKS } from "@/lib/grok/localModels";
+import { CLOUD_AGENTS_HOME } from "@/lib/grok/localModels";
 import type { TalkLane } from "@/lib/grok/taskRouter";
 import type { BotDefinition, Project } from "@/lib/types";
 
@@ -16,6 +16,8 @@ type Ops = {
   neverGuess: boolean;
   caveman: boolean;
   preferLocal: boolean;
+  /** Jeff picks which brain answers — auto routes by message type. */
+  engineMode: "auto" | TalkLane;
   stationedProjectId: string | null;
   lastBotId: string;
   collapsed: string[];
@@ -29,6 +31,7 @@ type MessageRow = {
   streaming?: boolean;
   lane?: TalkLane;
   engine?: string;
+  model?: string;
   agentUrl?: string;
 };
 
@@ -53,6 +56,7 @@ const defaultOps = (): Ops => ({
   neverGuess: true,
   caveman: true,
   preferLocal: true,
+  engineMode: "auto",
   stationedProjectId: "proj-demand-generator",
   lastBotId: "bot-control-tower",
   collapsed: [],
@@ -65,17 +69,40 @@ function nid() {
 function loadOps(): Ops {
   if (typeof window === "undefined") return defaultOps();
   try {
-    return { ...defaultOps(), ...(JSON.parse(localStorage.getItem(OPS_KEY) || "{}") as Partial<Ops>) };
+    const parsed = JSON.parse(localStorage.getItem(OPS_KEY) || "{}") as Partial<Ops>;
+    const merged = { ...defaultOps(), ...parsed };
+    if (!merged.engineMode) merged.engineMode = "auto";
+    return merged;
   } catch {
     return defaultOps();
   }
 }
 
-function laneLabel(lane?: TalkLane) {
-  if (lane === "local") return "Home PC";
-  if (lane === "cloud-agent") return "Cloud Agent";
-  return "Paid";
+function answerSourceBadge(lane?: TalkLane, model?: string | null) {
+  if (lane === "local") {
+    return {
+      text: model ? `Free · Home PC · ${model}` : "Free · Home PC",
+      className: "talk-source talk-source-free",
+    };
+  }
+  if (lane === "cloud-agent") {
+    return {
+      text: "Cloud Agent · remote computer",
+      className: "talk-source talk-source-agent",
+    };
+  }
+  return {
+    text: model ? `Paid · ${model}` : "Paid engine",
+    className: "talk-source talk-source-paid",
+  };
 }
+
+const ENGINE_MODES: { id: Ops["engineMode"]; label: string; hint: string }[] = [
+  { id: "auto", label: "Auto", hint: "Jeff OS picks home vs paid by message" },
+  { id: "local", label: "Home PC", hint: "Free Ollama on this computer only" },
+  { id: "paid", label: "Paid", hint: "Grok or Gemini — never home Ollama" },
+  { id: "cloud-agent", label: "Agent", hint: "Start a Cloud Agent for code work" },
+];
 
 export function GrokTalk() {
   const { state } = useMissionControl();
@@ -251,6 +278,7 @@ export function GrokTalk() {
             neverGuess: ops.neverGuess,
             caveman: ops.caveman,
             preferLocal: ops.preferLocal,
+            forceLane: ops.engineMode === "auto" ? null : ops.engineMode,
           },
           roster,
         }),
@@ -286,6 +314,7 @@ export function GrokTalk() {
               agentUrl?: string;
               lane?: TalkLane;
               engine?: string;
+              model?: string;
               reply?: string;
             };
 
@@ -307,6 +336,18 @@ export function GrokTalk() {
             }
             if (event.type === "lane" && event.engine) {
               pushActivity(`Using ${event.engine}`, true);
+              setRows((cur) =>
+                cur.map((r) =>
+                  r.id === assistantId && r.kind === "message"
+                    ? {
+                        ...r,
+                        lane: event.lane,
+                        engine: event.engine,
+                        model: event.model,
+                      }
+                    : r,
+                ),
+              );
             }
             if (event.type === "done") {
               setRows((cur) =>
@@ -320,6 +361,7 @@ export function GrokTalk() {
                           streaming: false,
                           lane: event.lane,
                           engine: event.engine,
+                          model: event.model,
                           agentUrl,
                         }
                       : r,
@@ -366,9 +408,21 @@ export function GrokTalk() {
   };
 
   const homeReady = status?.local.ready;
-  const engineLine = homeReady
-    ? `${status?.local.label ?? "Home PC"} · paid when needed`
-    : status?.paid?.label ?? "Add Ollama or API key";
+  const homeModel = status?.local.model;
+  const paidModel = status?.paid?.model;
+  const activeMode = ops.engineMode;
+  const engineLine =
+    activeMode === "auto"
+      ? homeReady
+        ? `${status?.local.label ?? "Home PC"} · auto-routes`
+        : status?.paid?.label ?? "Add Ollama or API key"
+      : activeMode === "local"
+        ? homeReady
+          ? `Locked · Free · ${homeModel ?? "Home PC"}`
+          : "Locked · Home PC (Ollama off)"
+        : activeMode === "paid"
+          ? `Locked · Paid · ${paidModel ?? "add API key"}`
+          : "Locked · Cloud Agent for code";
 
   return (
     <div className="talk-shell -mx-4 flex min-h-[calc(100dvh-5.5rem)] flex-col md:-mx-0">
@@ -490,9 +544,20 @@ export function GrokTalk() {
                   className={`talk-bubble mb-3 ${row.role === "user" ? "user" : "bot"}`}
                 >
                   <div className="talk-who">
-                    {row.role === "user"
-                      ? "You"
-                      : `${row.engine || bot?.name} · ${laneLabel(row.lane)}`}
+                    {row.role === "user" ? (
+                      "You"
+                    ) : (
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span>{bot?.name}</span>
+                        {(row.lane || row.streaming) && (
+                          <span className={answerSourceBadge(row.lane, row.model).className}>
+                            {row.streaming && !row.lane
+                              ? "Answering…"
+                              : answerSourceBadge(row.lane, row.model).text}
+                          </span>
+                        )}
+                      </span>
+                    )}
                   </div>
                   <div className="whitespace-pre-wrap leading-relaxed">
                     {row.content}
@@ -569,6 +634,19 @@ export function GrokTalk() {
               void send();
             }}
           >
+            <div className="talk-engine-picker mb-2 flex flex-wrap gap-1" role="group" aria-label="Answer engine">
+              {ENGINE_MODES.map((mode) => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  title={mode.hint}
+                  onClick={() => patchOps({ engineMode: mode.id })}
+                  className={`talk-engine-btn ${activeMode === mode.id ? "selected" : ""}`}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
             <div className="flex items-end gap-2 rounded-2xl border border-[#2a3c5a] bg-[#0b1220]/90 p-2 shadow-lg shadow-black/20">
               <button
                 type="button"
@@ -602,7 +680,11 @@ export function GrokTalk() {
               </button>
             </div>
             <p className="mt-2 text-center text-[10px] text-slate-600">
-              {LOCAL_MODEL_PICKS[0]?.ollama} on home PC · paid for hard work · agents auto-start
+              {activeMode === "auto"
+                ? "Auto picks free home PC for short Qs · paid for hard work · Agent for code"
+                : ENGINE_MODES.find((m) => m.id === activeMode)?.hint}
+              {homeModel && activeMode !== "paid" ? ` · home: ${homeModel}` : ""}
+              {paidModel && activeMode !== "local" ? ` · paid: ${paidModel}` : ""}
             </p>
           </form>
         </section>

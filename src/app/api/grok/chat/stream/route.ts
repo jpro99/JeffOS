@@ -114,6 +114,7 @@ Answer in plain language with short steps you are taking. Stay in character as $
           system: workSystem,
           lane: route.lane === "cloud-agent" ? "paid" : route.lane,
           preferLocal: body.ops?.preferLocal !== false && route.lane !== "cloud-agent",
+          strictLane: route.forced,
           write,
         });
 
