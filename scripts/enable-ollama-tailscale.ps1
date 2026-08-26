@@ -15,4 +15,4 @@ Write-Host "  3. Run:  ollama list"
 Write-Host "  4. In Tailscale, copy this PC's 100.x address"
 Write-Host "  5. In Cursor Settings, set env OLLAMA_HOST=http://100.x.x.x:11434"
 Write-Host ""
-Write-Host "Do not port-forward 11434 on your router. Tailscale only."
+Write-Host "Do not port-forward 11434 on your router. Tailscale only.
