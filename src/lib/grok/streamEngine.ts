@@ -1,11 +1,13 @@
 import {
   ollamaHost,
+  ollamaModel,
   pickEngineForLane,
   probeOllama,
   resolvePaidEngine,
   type ChatMessage,
   type ResolvedEngine,
 } from "@/lib/grok/engine";
+import { pickBestLocalModel } from "@/lib/grok/localModels";
 import { localAnswerLooksUsable } from "@/lib/grok/localAnswerOk";
 import type { TalkLane } from "@/lib/grok/taskRouter";
 
@@ -225,10 +227,12 @@ export async function runTalkStream(opts: {
     opts.lane === "local" || (opts.lane === "paid" && opts.preferLocal !== false);
 
   if (tryLocalFirst) {
-    const engine = pickEngineForLane("local");
+    let engine = pickEngineForLane("local");
     if (engine?.engine === "local") {
       const probe = await probeOllama();
       if (probe.ok) {
+        const model = pickBestLocalModel(probe.models, ollamaModel());
+        engine = { ...engine, model, label: `Home PC (${model})` };
         try {
           const result = await streamWithEngine(engine, opts.messages, opts.system, write);
           if (opts.lane === "local" || localAnswerLooksUsable(result.reply)) {
