@@ -14,7 +14,8 @@ import { ProjectCommandStrip } from "@/components/journey/ProjectCommandStrip";
 import { EasyProjectRail } from "@/components/easy/EasyProjectRail";
 
 const easyNav = [
-  { href: "/easy", label: "Start", icon: "◉" },
+  { href: "/easy/talk", label: "Talk", icon: "◉" },
+  { href: "/easy", label: "Start", icon: "◌" },
   { href: "/easy/projects", label: "Projects", icon: "◫" },
   { href: "/easy/settings", label: "You", icon: "◎" },
 ];
@@ -23,15 +24,16 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { state } = useMissionControl();
   const isNewWizard = pathname.startsWith("/easy/new");
+  const isTalk = pathname.startsWith("/easy/talk");
   const projectRoute = pathname.match(/^\/easy\/projects\/([^/]+)/);
   const projectId = projectRoute?.[1] && projectRoute[1] !== "new" ? projectRoute[1] : null;
   const isProjectArea = Boolean(projectId);
-  const showBuilderHub = !isNewWizard && !isProjectArea;
+  const showBuilderHub = !isNewWizard && !isProjectArea && !isTalk;
 
   return (
     <div className="min-h-screen bg-[#0a0b0e] bg-[radial-gradient(ellipse_at_top,_rgba(20,184,166,0.08)_0%,_transparent_50%)] text-zinc-100 pb-[env(safe-area-inset-bottom)]">
       <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0a0b0e]/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3 px-4 py-4">
+        <div className={cn("mx-auto flex flex-wrap items-center gap-3 px-4 py-4", isTalk ? "max-w-6xl" : "max-w-3xl")}>
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500/15 text-teal-400 ring-1 ring-teal-500/25">
               ◆
@@ -39,7 +41,11 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
             <div>
               <p className="text-sm font-semibold text-zinc-100">{JEFF_OS_NAME}</p>
               <p className="text-[10px] text-zinc-600">
-                {isProjectArea ? "Work · add · fix · check · Settings on left" : "Pick a project · fix errors · ship"}
+                {isTalk
+                  ? "Talk · projects on top · bots on left · streams like Grok"
+                  : isProjectArea
+                    ? "Work · add · fix · check · Settings on left"
+                    : "Pick a project · fix errors · ship"}
               </p>
             </div>
           </div>
@@ -79,18 +85,18 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {!isProjectArea && (
+        {!isProjectArea && !isTalk && (
           <div className="mx-auto max-w-3xl px-4 pb-3">
             <ExperiencePicker compact />
           </div>
         )}
 
-        {!isNewWizard && state.projects.length > 0 && (
+        {!isNewWizard && !isTalk && state.projects.length > 0 && (
           <ProjectCommandStrip mode="easy" compact={isProjectArea} />
         )}
       </header>
 
-      {!isProjectArea && <EasyOnlineAccess compact />}
+      {!isProjectArea && !isTalk && <EasyOnlineAccess compact />}
 
       {showBuilderHub && (
         <>
@@ -107,10 +113,13 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
         <main
           id="project-workspace"
           className={cn(
-            "mx-auto max-w-3xl px-4 py-8",
+            "mx-auto",
+            isTalk ? "max-w-6xl px-2 py-2 md:px-4" : "max-w-3xl px-4 py-8",
             isProjectArea
               ? "pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-[calc(4rem+env(safe-area-inset-bottom))]"
-              : "pb-[calc(4rem+env(safe-area-inset-bottom))]",
+              : isTalk
+                ? "pb-0"
+                : "pb-[calc(4rem+env(safe-area-inset-bottom))]",
           )}
         >
           {children}
@@ -120,7 +129,8 @@ export function EasyShell({ children }: { children: React.ReactNode }) {
       <footer
         className={cn(
           "fixed bottom-0 left-0 right-0 border-t border-white/[0.05] bg-[#0a0b0e]/95 px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-center text-[10px] text-zinc-600",
-          isProjectArea && "hidden md:block",
+          (isProjectArea || isTalk) && "hidden md:block",
+          isTalk && "hidden",
         )}
       >
         Same data as Classic · level: {state.settings.experienceLevel}
