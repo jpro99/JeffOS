@@ -110,6 +110,7 @@ export function pickBestLocalModel(
     const hit = installedMatch(installed, pick.ollama);
     if (hit) return hit;
   }
+  if (installed.length > 0) return installed[0]!.trim();
   return pref || DEFAULT_LOCAL_MODEL;
 }
 

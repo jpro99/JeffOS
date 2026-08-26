@@ -219,23 +219,25 @@ async function runOllamaChat(
   opts: { messages: ChatMessage[]; system: string },
   engine: ResolvedEngine,
 ): Promise<{ reply: string; engine: string; model: string }> {
-  const res = await fetch(`${ollamaHost()}/v1/chat/completions`, {
+  const res = await fetch(`${ollamaHost()}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: engine.model,
-      temperature: 0.4,
+      stream: false,
+      think: false,
       messages: [{ role: "system", content: opts.system }, ...opts.messages],
     }),
+    signal: AbortSignal.timeout(90_000),
   });
   const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-    error?: { message?: string };
+    message?: { content?: string };
+    error?: string;
   };
   if (!res.ok) {
-    throw new Error(data.error?.message || `Home PC model ${res.status}. Is Ollama running?`);
+    throw new Error(data.error || `Home PC model ${res.status}. Is Ollama running?`);
   }
-  const reply = data.choices?.[0]?.message?.content?.trim() ?? "";
+  const reply = data.message?.content?.trim() ?? "";
   if (!reply) throw new Error("Home PC model returned an empty reply.");
   return { reply, engine: engine.label, model: engine.model };
 }

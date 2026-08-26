@@ -13,6 +13,10 @@ test("pickBestLocalModel skips missing default and uses next installed", () => {
   assert.equal(pickBestLocalModel(installed), "qwen3.5:9b");
 });
 
-test("pickBestLocalModel falls back to DEFAULT when probe empty", () => {
-  assert.equal(pickBestLocalModel([]), DEFAULT_LOCAL_MODEL);
+test("pickBestLocalModel falls back to first installed tag when preferred missing", () => {
+  assert.equal(pickBestLocalModel(["qwen3.8:27b", "qwen3.5:9b"], "qwen2.5:7b"), "qwen3.8:27b");
+});
+
+test("pickBestLocalModel uses any installed model as last resort", () => {
+  assert.equal(pickBestLocalModel(["mistral:latest"]), "mistral:latest");
 });

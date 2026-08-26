@@ -67,26 +67,72 @@ async function streamOllama(
   write: StreamWriter,
 ): Promise<{ reply: string; lane: TalkLane }> {
   write({ type: "status", text: `Connecting to home PC (${engine.model})…` });
-  const res = await fetch(`${ollamaHost()}/v1/chat/completions`, {
+  const res = await fetch(`${ollamaHost()}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: engine.model,
-      temperature: 0.4,
       stream: true,
+      think: false,
       messages: [{ role: "system", content: system }, ...messages],
     }),
+    signal: AbortSignal.timeout(90_000),
   });
 
-  if (!res.ok || !res.body) {
-    const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
-    throw new Error(err.error?.message || `Home PC model ${res.status}`);
+  if (!res.ok) {
+    const raw = await res.text().catch(() => "");
+    let message = `Home PC model ${res.status}`;
+    try {
+      const err = JSON.parse(raw) as { error?: string };
+      if (err.error) message = err.error;
+    } catch {
+      if (raw.trim()) message = raw.trim().slice(0, 200);
+    }
+    throw new Error(message);
+  }
+  if (!res.body) throw new Error("Home PC returned no stream.");
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let full = "";
+  let started = false;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      let json: { message?: { content?: string }; error?: string };
+      try {
+        json = JSON.parse(trimmed) as { message?: { content?: string }; error?: string };
+      } catch {
+        continue;
+      }
+      if (json.error) throw new Error(json.error);
+      const piece = json.message?.content ?? "";
+      if (piece) {
+        if (!started) {
+          write({ type: "status", text: "Writing answer…" });
+          started = true;
+        }
+        full += piece;
+        write({ type: "token", text: piece });
+      }
+    }
   }
 
-  write({ type: "status", text: "Writing answer…" });
-  const reply = await consumeOpenAiSse(res.body, (t) => write({ type: "token", text: t }));
-  if (!reply) throw new Error("Home PC model returned an empty reply.");
-  return { reply, lane: "local" };
+  if (!full.trim()) {
+    throw new Error(
+      `Home PC model "${engine.model}" returned no text. Run ollama list and set OLLAMA_MODEL in .env.local.`,
+    );
+  }
+  return { reply: full.trim(), lane: "local" };
 }
 
 async function streamGrok(
@@ -274,9 +320,20 @@ export async function runTalkStream(opts: {
 
   const paid = resolvePaidEngine() ?? pickEngineForLane("paid");
   if (!paid) {
-    throw new Error(
-      "No engine available. Start Ollama on the home PC or add XAI_API_KEY / GEMINI_API_KEY.",
-    );
+    const msg = [
+      "Talk could not reach a paid engine and home Ollama did not finish an answer.",
+      "",
+      "Fix (pick one):",
+      "1. Pull latest Jeff OS: git pull — then restart npm run dev",
+      "2. In .env.local set OLLAMA_MODEL=qwen3.8:27b (run ollama list first)",
+      "3. Tap Home PC above and make sure Ollama is running",
+      "4. Add GEMINI_API_KEY or XAI_API_KEY to .env.local for Paid mode",
+    ].join("\n");
+    write({ type: "lane", lane: "local", engine: "Jeff OS", model: "setup" });
+    for (const piece of msg.match(/.{1,48}/g) ?? [msg]) {
+      write({ type: "token", text: piece });
+    }
+    return { reply: msg, lane: "local", engine: "Jeff OS", model: "setup" };
   }
 
   const result = await streamWithEngine(paid, opts.messages, opts.system, write);
