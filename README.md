@@ -11,7 +11,19 @@ cd "C:\Projects\Project Command\jeff-mission-control"
 npm run dev
 ```
 
-Open http://localhost:3000/easy
+Open http://localhost:3000/easy/talk
+
+Worldwide stack (one control plane, three engines):
+
+| Where you are | What writes code | What answers small questions |
+|---------------|------------------|------------------------------|
+| Home PC (`C:\Projects`) | Local Cursor | **Ollama** on this machine — see `LOCAL.md` |
+| Anywhere with a browser | [Cloud Agents](https://cursor.com/agents) | **Talk** on Vercel → Grok |
+| Hotel / other office | Cloud Agent PR → `git pull` | Same Talk URL |
+
+Cloud Agents are not a second chat app. They are remote computers that open PRs. They do not write to `C:\`. GitHub is the travel disk.
+
+**Cursor is in charge** (all projects): paste the User Rule in [docs/CURSOR_IN_CHARGE.md](docs/CURSOR_IN_CHARGE.md). Short general questions may use home Ollama; code / demand facts stay on paid Cursor. Away from the desk needs Tailscale. No xAI key.
 
 ## What lives where
 
@@ -43,6 +55,7 @@ npm run push-live
 
 | Area | What |
 |------|------|
+| **Talk** | Grok + home Ollama + Cloud Agent routing. You set never-merge / never-guess |
 | **Easy Mode** | Builder Hub, buttons, paste & fix, local terminal |
 | **Project workspace** | Health, next action, Docs tab |
 | **Docs tab** | Edit God Bot markdown in `docs/command-center/` |

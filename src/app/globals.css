@@ -61,6 +61,141 @@ button {
   display: none;
 }
 
+/* Jeff OS Talk — Grok / Kepi Bot layout */
+.talk-shell {
+  background: linear-gradient(180deg, #0b1220 0%, #0a0f1a 100%);
+}
+
+.talk-brand {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #f1f5f9;
+}
+
+.talk-brand-sub {
+  margin: 0;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.talk-muted {
+  color: #94a3b8;
+}
+
+.talk-ceo {
+  border: 1px solid #3f5a2a;
+  background: #132414;
+  border-radius: 14px;
+  padding: 12px;
+  color: #f1f5f9;
+  cursor: pointer;
+}
+
+.talk-ceo.selected {
+  outline: 2px solid #f4c95d;
+}
+
+.talk-project-block {
+  border: 1px solid #2a3c5a;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.talk-project-head {
+  text-align: left;
+  background: #16233a;
+  color: #f1f5f9;
+  border: 0;
+  padding: 10px 12px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.talk-project-head:hover {
+  background: #1c2d48;
+}
+
+.talk-bot {
+  background: transparent;
+  color: #cbd5e1;
+  border: 0;
+  border-top: 1px solid #2a3c5a;
+  padding: 9px 12px 9px 20px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.talk-bot:hover {
+  background: #132033;
+}
+
+.talk-bot.selected {
+  background: #0c3a4d;
+  color: #38bdf8;
+}
+
+.talk-stage {
+  background: #0b1220;
+}
+
+.talk-stage-top {
+  border-bottom: 1px solid #2a3c5a;
+}
+
+.talk-thread {
+  display: flex;
+  flex-direction: column;
+}
+
+.talk-bubble {
+  max-width: 42rem;
+  border: 1px solid #2a3c5a;
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: #e2e8f0;
+}
+
+.talk-bubble.user {
+  align-self: flex-end;
+  margin-left: auto;
+  background: #123a44;
+  border-color: #1e4f5c;
+}
+
+.talk-bubble.bot {
+  align-self: flex-start;
+  background: #16233a;
+}
+
+.talk-who {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.talk-activity {
+  align-self: center;
+  max-width: 28rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.talk-empty {
+  margin-top: 10vh;
+}
+
+.talk-rail {
+  background: #0f1b30;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

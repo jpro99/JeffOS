@@ -32,8 +32,14 @@ export function EasyHome() {
 
         <div className="flex flex-wrap gap-3 pt-2">
           <Link
-            href="/easy/new"
+            href="/easy/talk"
             className="rounded-full bg-teal-500 px-6 py-3 text-sm font-semibold text-black hover:bg-teal-400"
+          >
+            Open Talk
+          </Link>
+          <Link
+            href="/easy/new"
+            className="rounded-full border border-white/15 bg-white/[0.05] px-6 py-3 text-sm font-medium text-zinc-200 hover:bg-white/[0.08]"
           >
             New application
           </Link>

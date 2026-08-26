@@ -1,0 +1,28 @@
+---
+description: Cursor owns local Ollama vs paid. All Jeff OS work.
+alwaysApply: true
+---
+
+# Cursor in charge (local then paid)
+
+You are Cursor. You decide the lane. Jeff does not pick a model each time.
+
+1. **Code / PR / implement / multi-file** — stay paid Cursor (or a Cloud Agent). Do not ask Ollama to write the patch.
+2. **Demand dollars, exhibits, medical, GIS owner, never-guess facts** — stay paid Cursor. Never let the home model invent money or case facts.
+3. **General / short / rephrase** — try the home Ollama box first, then keep or discard.
+
+## How to reach the home bot
+
+- If `OLLAMA_HOST` is set (Tailscale URL when Jeff is away), use that.
+- Else if this machine is Jeff's Windows PC (`C:\Projects` exists), use `http://127.0.0.1:11434`.
+- Else this is a Cloud Agent or a laptop that cannot see the house. **Skip local. Stay paid.** Do not call Linux `localhost` — that is not the Velocity Micro.
+
+## Call
+
+`POST {host}/api/chat` with `think: false` and model `qwen3.8:27b` (fallback `qwen3.5:9b`).
+
+Keep the local reply only if it is short, on-topic, and does not say Jeff OS is fictional, does not dump "Thinking…", and does not invent omnipotent/god-like definitions for God Bot.
+
+If local is down, empty, or unusable — answer as paid Cursor. Say which lane you used in one short clause.
+
+Never ask Jeff for an xAI API key. Cursor is the paid brain.
