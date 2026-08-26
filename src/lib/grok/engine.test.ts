@@ -30,7 +30,7 @@ test("local engine is on for a home PC and off on Vercel localhost", () => {
   assert.equal(localEngineConfigured({ VERCEL: "1" }), false);
   assert.equal(localEngineConfigured({ VERCEL: "1", OLLAMA_HOST: "https://jeff-pc.ts.net" }), true);
   assert.equal(resolveLocalEngine({})?.engine, "local");
-  assert.equal(resolveLocalEngine({})?.model, "qwen2.5:7b");
+  assert.equal(resolveLocalEngine({})?.model, "qwen3.8:27b");
 });
 
 test("local lane falls back to Grok when Ollama is disabled", () => {

@@ -1,4 +1,4 @@
-import { DEFAULT_LOCAL_MODEL } from "@/lib/grok/localModels";
+import { DEFAULT_LOCAL_MODEL, pickBestLocalModel } from "@/lib/grok/localModels";
 import type { TalkLane } from "@/lib/grok/taskRouter";
 
 export const XAI_API_BASE_URL = "https://api.x.ai/v1";
@@ -249,7 +249,10 @@ export async function runGrokChat(opts: {
   let engine = pickEngineForLane(lane);
   if (lane === "local" && engine?.engine === "local") {
     const probe = await probeOllama();
-    if (!probe.ok) {
+    if (probe.ok) {
+      const model = pickBestLocalModel(probe.models, ollamaModel());
+      engine = { ...engine, model, label: `Home PC (${model})` };
+    } else {
       engine = resolvePaidEngine();
     }
   }
