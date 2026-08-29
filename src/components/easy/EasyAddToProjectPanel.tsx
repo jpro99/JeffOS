@@ -9,9 +9,12 @@ import {
   readImageFile,
   type DesignReference,
 } from "@/lib/mission/design-from-image";
+import { buildJeffAddReply, extractAcceptancePreview } from "@/lib/mission/jeff-reply";
+import { openCursorWithPrompt } from "@/lib/mission/open-cursor";
 import { createSpeechRecognitionAdapter } from "@/lib/voice/recognition";
 import { CursorBuildPrerequisites } from "@/components/shared/CursorBuildPrerequisites";
-import { copyToClipboard } from "@/lib/utils";
+import { useIsLocalhost } from "@/lib/hooks/use-mounted";
+import { copyToClipboard, uid } from "@/lib/utils";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -19,6 +22,14 @@ type DesignAttachment = {
   file: File;
   preview: string;
   analysis?: DesignReference;
+};
+
+type ChatMessage = {
+  id: string;
+  role: "user" | "jeff";
+  text: string;
+  bullets?: string[];
+  at: string;
 };
 
 export function EasyAddToProjectPanel({
@@ -33,11 +44,13 @@ export function EasyAddToProjectPanel({
   autoRunPrefill?: boolean;
 }) {
   const { state, updateProject, addActivity } = useMissionControl();
+  const isLocal = useIsLocalhost();
   const live = state.projects.find((p) => p.id === project.id) ?? project;
 
   const [intent, setIntent] = useState("");
   const [design, setDesign] = useState<DesignAttachment | null>(null);
   const [prompt, setPrompt] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [listening, setListening] = useState(false);
   const [building, setBuilding] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -50,6 +63,7 @@ export function EasyAddToProjectPanel({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const promptRef = useRef<HTMLDivElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const attachImageFile = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -168,24 +182,70 @@ export function EasyAddToProjectPanel({
       setPrompt(result.prompt);
       setExpanded(true);
 
+      const userText =
+        trimmed ||
+        (designRef ? `Match this reference photo (${designRef.summary})` : "Build this");
+
       const ok = await copyToClipboard(result.prompt);
-      const attachNote = design ? " · also drag the reference photo into Cursor" : "";
-      setMsg(
-        ok ?
-          `Copied — paste in Cursor on ${live.path ?? "your project folder"}${attachNote}`
-        : `Prompt ready — copy below and paste in Cursor${attachNote}`,
-      );
+
+      let openedCursor = false;
+      let cursorNote: string | undefined;
+      if (isLocal && live.path?.trim()) {
+        const open = await openCursorWithPrompt(live.path.trim(), result.prompt);
+        openedCursor = open.ok;
+        cursorNote = open.ok
+          ? `${open.message}${ok ? " · also on clipboard (Ctrl+V in Agent)" : ""}`
+          : open.message;
+        if (!open.ok) setMsg(open.message);
+      }
+
+      const jeffText = buildJeffAddReply({
+        summary: result.summary,
+        stepCount: result.stepCount,
+        prompt: result.prompt,
+        hasDesign: Boolean(designRef),
+        openedCursor,
+        cursorNote,
+        isLocalhost: isLocal,
+      });
+
+      const now = new Date().toISOString();
+      setMessages((prev) => [
+        ...prev,
+        { id: uid("m"), role: "user", text: userText, at: now },
+        {
+          id: uid("m"),
+          role: "jeff",
+          text: jeffText,
+          bullets: extractAcceptancePreview(result.prompt),
+          at: now,
+        },
+      ]);
+
+      if (!openedCursor) {
+        const attachNote = design ? " · also drag the reference photo into Cursor" : "";
+        setMsg(
+          ok
+            ? `Copied — paste in Cursor on ${live.path ?? "your project folder"}${attachNote}`
+            : `Prompt ready — copy below and paste in Cursor${attachNote}`,
+        );
+      } else {
+        setMsg(cursorNote ?? "Cursor opened — paste with Ctrl+V");
+      }
+
       addActivity(`Add to project: ${live.name} — ${result.summary}`, "routing", live.id);
+      setIntent("");
 
       requestAnimationFrame(() => {
-        promptRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        promptRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
     } catch {
       setMsg("Could not analyze image — try another photo");
     } finally {
       setBuilding(false);
     }
-  }, [intent, design, live, state, updateProject, addActivity]);
+  }, [intent, design, live, state, updateProject, addActivity, isLocal]);
 
   const runGoRef = useRef(runGo);
   runGoRef.current = runGo;
@@ -211,7 +271,8 @@ export function EasyAddToProjectPanel({
         <div>
           <h2 className="text-base font-semibold text-violet-100">Add to the project</h2>
           <p className="mt-1 text-sm text-zinc-500">
-            Type, talk, or add a reference photo — Go → paste in Cursor (attach the same photo there).
+            Chat with Jeff OS — talk, type, or drop a photo. Go replies here
+            {isLocal ? " and opens Cursor." : " (open Cursor from your PC with npm run go)."}
           </p>
         </div>
         {!expanded && (
@@ -227,12 +288,43 @@ export function EasyAddToProjectPanel({
 
       {expanded && (
         <div className="mt-4 space-y-3">
+          {messages.length > 0 && (
+            <div className="max-h-72 space-y-3 overflow-y-auto rounded-xl border border-white/10 bg-black/30 p-3">
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={
+                    m.role === "user"
+                      ? "ml-8 rounded-2xl rounded-br-md bg-violet-500/25 px-3 py-2 text-sm text-violet-50"
+                      : "mr-8 rounded-2xl rounded-bl-md border border-teal-500/20 bg-teal-500/10 px-3 py-2 text-sm text-teal-50"
+                  }
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-wide opacity-60">
+                    {m.role === "user" ? "You" : "Jeff OS"}
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap leading-relaxed">{m.text}</p>
+                  {m.bullets && m.bullets.length > 0 && (
+                    <ul className="mt-2 space-y-1 border-t border-white/10 pt-2 text-xs text-zinc-300">
+                      {m.bullets.map((b) => (
+                        <li key={b.slice(0, 40)} className="flex gap-2">
+                          <span className="text-teal-400">·</span>
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+          )}
+
           <textarea
             ref={inputRef}
             value={intent}
             onChange={(e) => setIntent(e.target.value)}
-            rows={4}
-            placeholder="Example: Match this UI style. Add a search box. Replicate the purple accent and dark cards from my screenshot."
+            rows={3}
+            placeholder="Example: Match this UI. Add remote desktop Phase 1. Fix the login button."
             className="w-full resize-y rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-violet-500/40 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -270,7 +362,6 @@ export function EasyAddToProjectPanel({
                     {design.analysis.summary} · palette in prompt
                   </p>
                 )}
-                <p className="mt-2 text-zinc-500">Drag this image into Cursor when you paste the prompt.</p>
               </div>
               <button
                 type="button"
@@ -328,21 +419,43 @@ export function EasyAddToProjectPanel({
               onClick={() => void runGo()}
               className="min-h-[44px] flex-1 rounded-2xl bg-violet-500 px-6 py-2.5 text-base font-semibold text-white hover:bg-violet-400 disabled:opacity-40 sm:flex-none"
             >
-              {building ? "Building prompt…" : "Go → Cursor"}
+              {building
+                ? isLocal
+                  ? "Building + opening Cursor…"
+                  : "Building prompt…"
+                : isLocal
+                  ? "Go → Cursor"
+                  : "Go → copy prompt"}
             </button>
             {prompt && (
               <button
                 type="button"
-                onClick={() => void copyToClipboard(prompt).then((ok) => setMsg(ok ? "Copied again" : "Select and copy"))}
+                onClick={() =>
+                  void copyToClipboard(prompt).then((ok) => setMsg(ok ? "Copied again" : "Select and copy"))
+                }
                 className="rounded-full border border-white/10 px-4 py-2.5 text-sm text-zinc-400"
               >
                 Copy again
               </button>
             )}
+            {prompt && isLocal && live.path && (
+              <button
+                type="button"
+                onClick={() =>
+                  void openCursorWithPrompt(live.path!, prompt).then((r) => setMsg(r.message))
+                }
+                className="rounded-full border border-teal-500/30 px-4 py-2.5 text-sm text-teal-300 hover:bg-teal-500/10"
+              >
+                Open Cursor again
+              </button>
+            )}
           </div>
 
           <p className="text-[10px] text-zinc-600">
-            Ctrl+Enter = Go · Paste screenshot in box · Photo extracts colors for the prompt
+            Ctrl+Enter = Go
+            {isLocal
+              ? " · Localhost opens Cursor + saves .jeff-os/last-agent-prompt.md"
+              : " · Lemon copies prompt only — use PC for auto-open"}
           </p>
         </div>
       )}
@@ -351,17 +464,17 @@ export function EasyAddToProjectPanel({
 
       {prompt && expanded && (
         <div ref={promptRef} className="mt-4 space-y-3 rounded-xl border border-teal-500/30 bg-black/40 p-4">
-          <p className="text-xs font-semibold text-teal-300">Paste this in Cursor Agent</p>
+          <p className="text-xs font-semibold text-teal-300">Cursor Agent prompt</p>
           {design && (
             <p className="text-xs text-amber-200/90">
-              Also attach your reference photo in Cursor — colors are in the prompt, the image shows layout and spacing.
+              Attach your reference photo in Cursor — colors are already in the text.
             </p>
           )}
           <CursorBuildPrerequisites project={live} />
           <textarea
             readOnly
             value={prompt}
-            rows={12}
+            rows={10}
             className="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-3 font-mono text-[11px] leading-relaxed text-zinc-300"
             onFocus={(e) => e.target.select()}
           />

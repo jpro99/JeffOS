@@ -239,14 +239,12 @@ export function EasyProjectCockpit({ project }: { project: Project }) {
       setStatusMsg("Pick a folder first.");
       return;
     }
-    const res = await fetch("/api/projects/open-in-cursor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ folderPath: live.path }),
-    });
-    const data = (await res.json()) as { ok: boolean; error?: string };
+    const { openCursorWithPrompt } = await import("@/lib/mission/open-cursor");
+    const data = await openCursorWithPrompt(live.path, fixPrompt.trim() || undefined);
     setStatusMsg(
-      data.ok ? "Cursor opened — paste the fix text in Agent chat." : data.error ?? "Use localhost npm run dev.",
+      data.ok
+        ? data.message
+        : data.message || "Use localhost npm run go.",
     );
   };
 

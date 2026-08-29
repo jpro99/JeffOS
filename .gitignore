@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Jeff OS drops Cursor paste targets here (local only)
+.jeff-os/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
