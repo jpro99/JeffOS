@@ -23,8 +23,8 @@ describe("jeff-reply", () => {
       prompt: "Jeff wants: change button label\n",
       isLocalhost: false,
     });
-    assert.match(text, /Lemon/);
-    assert.match(text, /npm run go/);
+    assert.match(text, /PC Bridge/);
+    assert.match(text, /npm run bridge/);
   });
 
   it("extracts acceptance bullets", () => {

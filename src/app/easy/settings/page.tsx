@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMissionControl } from "@/lib/store/context";
 import { ExperiencePicker } from "@/components/easy/ExperiencePicker";
 import { EasyOnlineAccess } from "@/components/easy/EasyOnlineAccess";
+import { EasyPcBridgePanel } from "@/components/easy/EasyPcBridgePanel";
 import { normalizePublicUrl } from "@/lib/deploy/online-access";
 
 export default function EasySettingsPage() {
@@ -17,6 +18,8 @@ export default function EasySettingsPage() {
       </div>
 
       <ExperiencePicker />
+
+      <EasyPcBridgePanel />
 
       <EasyOnlineAccess />
 

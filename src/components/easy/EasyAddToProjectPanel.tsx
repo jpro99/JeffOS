@@ -191,11 +191,16 @@ export function EasyAddToProjectPanel({
       let openedCursor = false;
       let cursorNote: string | undefined;
       if (isLocal && live.path?.trim()) {
-        const open = await openCursorWithPrompt(live.path.trim(), result.prompt);
+        const open = await openCursorWithPrompt(live.path.trim(), result.prompt, state.settings);
         openedCursor = open.ok;
         cursorNote = open.ok
           ? `${open.message}${ok ? " · also on clipboard (Ctrl+V in Agent)" : ""}`
           : open.message;
+        if (!open.ok) setMsg(open.message);
+      } else if (!isLocal && live.path?.trim()) {
+        const open = await openCursorWithPrompt(live.path.trim(), result.prompt, state.settings);
+        openedCursor = open.ok;
+        cursorNote = open.message;
         if (!open.ok) setMsg(open.message);
       }
 
@@ -272,7 +277,11 @@ export function EasyAddToProjectPanel({
           <h2 className="text-base font-semibold text-violet-100">Add to the project</h2>
           <p className="mt-1 text-sm text-zinc-500">
             Chat with Jeff OS — talk, type, or drop a photo. Go replies here
-            {isLocal ? " and opens Cursor." : " (open Cursor from your PC with npm run go)."}
+            {isLocal
+              ? " and opens Cursor."
+              : state.settings.bridgeToken
+                ? " and sends open-Cursor to your PC bridge."
+                : " (set PC Bridge in Settings so Lemon can open Cursor)."}
           </p>
         </div>
         {!expanded && (
@@ -420,10 +429,8 @@ export function EasyAddToProjectPanel({
               className="min-h-[44px] flex-1 rounded-2xl bg-violet-500 px-6 py-2.5 text-base font-semibold text-white hover:bg-violet-400 disabled:opacity-40 sm:flex-none"
             >
               {building
-                ? isLocal
-                  ? "Building + opening Cursor…"
-                  : "Building prompt…"
-                : isLocal
+                ? "Building…"
+                : isLocal || state.settings.bridgeToken
                   ? "Go → Cursor"
                   : "Go → copy prompt"}
             </button>
@@ -438,11 +445,13 @@ export function EasyAddToProjectPanel({
                 Copy again
               </button>
             )}
-            {prompt && isLocal && live.path && (
+            {prompt && live.path && (
               <button
                 type="button"
                 onClick={() =>
-                  void openCursorWithPrompt(live.path!, prompt).then((r) => setMsg(r.message))
+                  void openCursorWithPrompt(live.path!, prompt, state.settings).then((r) =>
+                    setMsg(r.message),
+                  )
                 }
                 className="rounded-full border border-teal-500/30 px-4 py-2.5 text-sm text-teal-300 hover:bg-teal-500/10"
               >
@@ -455,7 +464,9 @@ export function EasyAddToProjectPanel({
             Ctrl+Enter = Go
             {isLocal
               ? " · Localhost opens Cursor + saves .jeff-os/last-agent-prompt.md"
-              : " · Lemon copies prompt only — use PC for auto-open"}
+              : state.settings.bridgeToken
+                ? " · Lemon → PC bridge opens Cursor (keep npm run bridge on)"
+                : " · Lemon: copy prompt, or set PC Bridge in Settings"}
           </p>
         </div>
       )}

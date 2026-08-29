@@ -240,7 +240,11 @@ export function EasyProjectCockpit({ project }: { project: Project }) {
       return;
     }
     const { openCursorWithPrompt } = await import("@/lib/mission/open-cursor");
-    const data = await openCursorWithPrompt(live.path, fixPrompt.trim() || undefined);
+    const data = await openCursorWithPrompt(
+      live.path,
+      fixPrompt.trim() || undefined,
+      state.settings,
+    );
     setStatusMsg(
       data.ok
         ? data.message

@@ -1,7 +1,8 @@
-# One command: Jeff OS dev server + browser + Cursor
+# One command: Jeff OS dev server + browser + Cursor + PC bridge (for Lemon)
 param(
   [switch]$NoCursor,
-  [switch]$NoBrowser
+  [switch]$NoBrowser,
+  [switch]$NoBridge
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,6 +17,12 @@ Write-Host ""
 $devCmd = "Set-Location '$Root'; npm run dev"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $devCmd
 Write-Host "Dev server starting in new window..." -ForegroundColor Green
+
+if (-not $NoBridge) {
+  $bridgeCmd = "Set-Location '$Root'; npm run bridge"
+  Start-Process powershell -ArgumentList "-NoExit", "-Command", $bridgeCmd
+  Write-Host "PC Bridge starting (Lemon can open Cursor)..." -ForegroundColor Green
+}
 
 Start-Sleep -Seconds 4
 
@@ -34,10 +41,11 @@ if (-not $NoCursor) {
 }
 
 Write-Host ""
-Write-Host "YOUR 3-STEP LOOP (easiest way):" -ForegroundColor Cyan
-Write-Host "  1. Jeff OS (browser) - type or paste -> Analyze or Build it" -ForegroundColor White
-Write-Host "  2. Cursor - paste the prompt Jeff OS copied" -ForegroundColor White
-Write-Host "  3. Push live - run: npm run push-live" -ForegroundColor White
+Write-Host "LEMON + CURSOR LOOP:" -ForegroundColor Cyan
+Write-Host "  1. Keep the BRIDGE window open" -ForegroundColor White
+Write-Host "  2. Lemon Settings → paste Bridge token (printed in bridge window)" -ForegroundColor White
+Write-Host "  3. On Lemon: Talk → Go → Cursor opens on this PC" -ForegroundColor White
 Write-Host ""
-Write-Host "Use localhost Jeff OS for push/fix. Lemon site is view-only." -ForegroundColor Gray
+Write-Host "Localhost: http://localhost:3000/easy" -ForegroundColor Gray
+Write-Host "Lemon:     https://project-command-lemon.vercel.app/easy" -ForegroundColor Gray
 Write-Host ""

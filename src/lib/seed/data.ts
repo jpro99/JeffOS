@@ -48,6 +48,8 @@ export const seedState: MissionControlState = {
     guidedJourneyDismissed: false,
     guidedJourneyLastBuildAt: null,
     productionUrl: null,
+    bridgeUrl: null,
+    bridgeToken: null,
   },
   projects: [
     {

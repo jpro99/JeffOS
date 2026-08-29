@@ -590,6 +590,13 @@ export interface AppSettings {
   guidedJourneyLastBuildAt: string | null;
   /** Saved Vercel / custom domain — open Jeff OS from phone */
   productionUrl: string | null;
+  /**
+   * PC Bridge — Lemon calls this URL so Go can open Cursor on your machine.
+   * Example: http://192.168.1.20:3927 or Tailscale http://jeff-pc:3927
+   */
+  bridgeUrl: string | null;
+  /** Shared secret printed by `npm run bridge` */
+  bridgeToken: string | null;
 }
 
 export type VoiceMode = "push-to-talk" | "tap-to-talk";

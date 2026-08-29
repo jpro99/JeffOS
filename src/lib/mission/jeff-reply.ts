@@ -28,7 +28,7 @@ export function buildJeffAddReply(opts: {
     );
   } else if (opts.isLocalhost === false) {
     lines.push(
-      "You're on Lemon (cloud). Prompt copied — at your PC run npm run go for one-tap Open Cursor.",
+      "You're on Lemon. Set PC Bridge in Easy Settings (npm run bridge on your PC) so Go opens Cursor — or paste the prompt manually.",
     );
   } else {
     lines.push("Prompt ready on clipboard. Paste in Cursor Agent — then Check again here when done.");

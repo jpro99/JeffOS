@@ -154,6 +154,8 @@ export function migrateState(raw: Partial<MissionControlState>): MissionControlS
       guidedJourneyLastBuildAt:
         base.settings?.guidedJourneyLastBuildAt ?? seedState.settings.guidedJourneyLastBuildAt,
       productionUrl: base.settings?.productionUrl ?? seedState.settings.productionUrl,
+      bridgeUrl: base.settings?.bridgeUrl ?? seedState.settings.bridgeUrl,
+      bridgeToken: base.settings?.bridgeToken ?? seedState.settings.bridgeToken,
     },
     projects,
     bots,
